@@ -121,7 +121,7 @@ def parse(args=None):
                         help='training batch size')
     
 
-    parser.add_argument('--weighted_sampling',  type= str2bool, default=False,
+    parser.add_argument('--weighted_sampling',  type= str2bool, default=True,
                         help='Use weighted Sampling?')
     
 

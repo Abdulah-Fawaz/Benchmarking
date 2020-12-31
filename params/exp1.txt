@@ -4,5 +4,5 @@
 --logdir=tmp/
 --in_channels=4
 --dataset_arr=scan_age
---train_rotations=True
+--train_rotations=False
 --patience=100
