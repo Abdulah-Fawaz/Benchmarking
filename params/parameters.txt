@@ -1,0 +1,8 @@
+--model=presnet
+--project=True
+--task=regression
+--logdir=tmp/
+--in_channels=4
+--dataset_arr=scan_age
+--train_rotations=True
+--patience=100
