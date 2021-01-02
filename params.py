@@ -42,7 +42,7 @@ def parse(args=None):
     
     
     parser.add_argument('--model', '-m', choices = ['presnet', 
-                                                    'spherical-unet', 
+                                                    'sphericalunet', 
                                                     'esteves', 
                                                     's2cnn', 
                                                     'chebnet', 

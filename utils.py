@@ -31,7 +31,7 @@ def validate(args, model, criterion, valLoader, current_best,patience, device, s
         val_labels = []
         for i, batch in enumerate(valLoader):    
             images = batch['image']
-            if model_name == 'spherical-unet':
+            if model_name == 'sphericalunet':
                 images = images.permute(2,1,0)
             
             images = images.to(device)
@@ -132,7 +132,7 @@ def test_regression(args, model, criterion, testLoader,device):
     model.eval()
     for i, batch in enumerate(testLoader):
         test_images = batch['image']
-        if model_name == 'spherical-unet':
+        if model_name == 'sphericalunet':
                 test_images = test_images.permute(2,1,0)
                 
         test_images = test_images.to(device)
