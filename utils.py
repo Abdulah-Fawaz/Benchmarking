@@ -134,6 +134,7 @@ def test_regression(args, model, criterion, testLoader,device):
         test_images = batch['image']
         if model_name == 'sphericalunet':
                 test_images = test_images.permute(2,1,0)
+
                 
         test_images = test_images.to(device)
         

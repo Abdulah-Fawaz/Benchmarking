@@ -295,3 +295,138 @@ class My_dHCP_Data(torch.utils.data.Dataset):
             sample = {'image': image,'label': label}
 
         return sample
+
+
+
+
+
+
+
+
+from torch_geometric.data import Data
+
+class dHCP_Data_range_graph_batch(torch.utils.data.Dataset):
+
+    def __init__(self, input_arr, edge, smoothing_arr = None, global_params = None, output_as_torch = True, chosen_device = 'cpu' ):
+        
+        self.input_arr = input_arr
+        
+        self.image_files = input_arr[:,0]
+        self.label = input_arr[:,-1]
+        if self.input_arr.shape[1] > 2:
+            
+            self.metadata = input_arr[:,1:-1]
+            
+        else:
+            self.metadata = None
+            
+        self.smoothing = smoothing_arr
+        
+        self.global_params = global_params
+        
+        self.output_as_torch = output_as_torch
+        self.edge = edge
+        self.chosen_device = chosen_device
+        
+    def __len__(self):
+        
+        return len(self.input_arr)
+    
+    def __num_channels__(self):
+        
+        return len(self.image_files[0])
+    
+            
+    def __getitem__(self, idx):
+        
+        """
+        First load the images and collect them as numpy arrays
+        
+        then collect the label
+        
+        then collect the metadata (though might be None)
+        """
+        
+        ### images:
+        
+        files = self.image_files[idx]
+        
+        image = []
+        for file in files:
+            
+            im = nb.load(file).darrays[0].data
+            
+            image.append(im)
+            
+            
+            
+        image = np.vstack(image)
+        
+        ### images now loaded and stacked with shape [num_modalities , len(image) ]
+        
+        
+        
+        ### labels
+        
+        label = self.label[idx]
+
+        
+        ###### metadata
+        
+        
+        if self.metadata != None:
+            metadata = self.metadata[idx]
+            
+        else:
+            metadata = None
+            
+        
+        if self.smoothing != None or False:
+            for i in range(image.shape[0]):
+               image[i] =  np.clip(image[i], self.smoothing[i][0], self.smoothing[i][1])
+                
+        
+        
+        # now normalise according to min/max
+        
+        assert self.global_params != None
+            
+        for i in range(image.shape[0]):
+            
+            minimum = self.global_params[i][0]
+            maximum = self.global_params[i][1]
+            
+            assert minimum < maximum, "global minimum is larger than global maximum?"
+            
+            image[i] = image[i] - minimum
+            image[i] = image[i] / (maximum- minimum)
+            
+            
+                             
+            
+            
+        # torchify if required:
+        
+        if self.output_as_torch:
+            image = torch.Tensor( image )
+
+            label = torch.Tensor( [label] )
+            
+            if metadata != None:
+                
+                metadata = torch.Tensor( [metadata])
+
+
+        
+        if metadata != None:
+            
+            sample = Data(x = image.permute(1,0).to(self.chosen_device), meta =  metadata.to(self.chosen_device), edge_index = self.edge.to(self.chosen_device), 
+                          y =  label.to(self.chosen_device))
+        
+        else:
+            sample = Data(x = image.permute(1,0).to(self.chosen_device), edge_index = self.edge.to(self.chosen_device), 
+                          y =  label.to(self.chosen_device))
+            
+        
+
+        return sample
