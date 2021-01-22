@@ -8,7 +8,7 @@ Created on Sat Nov 28 13:43:16 2020
 
 import numpy as np
 import torch
-from data_utils.MyDataLoader import My_dHCP_Data
+from data_utils.MyDataLoader import My_dHCP_Data, My_dHCP_Data_Graph
 from utils import import_from
 import matplotlib.pyplot as plt
 
@@ -27,7 +27,9 @@ def load_dataset_arrays(args):
     return train_dataset_arr, validation_dataset_arr, test_dataset_arr
 
 def load_dataset(train_dataset_arr, validation_dataset_arr, test_dataset_arr ,args):    
-
+#if its a graph add self.edge and then change dataloader
+    
+    
     train_ds = My_dHCP_Data(train_dataset_arr, projected = args.project, 
                       rotations= args.train_rotations, 
                       parity_choice=args.train_parity, 
@@ -66,6 +68,50 @@ def load_dataset(train_dataset_arr, validation_dataset_arr, test_dataset_arr ,ar
     
     return train_ds, val_ds, test_ds, rot_test_ds
 
+
+def load_dataset_graph(train_dataset_arr, validation_dataset_arr, test_dataset_arr ,args):    
+#if its a graph add self.edge and then change dataloader
+    edges = torch.LongTensor(np.load('data/edge_ico_6.npy').T)
+
+    
+    train_ds = My_dHCP_Data_Graph(train_dataset_arr,edges=edges, projected = args.project, 
+                      rotations= args.train_rotations, 
+                      parity_choice=args.train_parity, 
+                      number_of_warps = args.train_warps,
+                      normalisation = args.normalisation,
+                      warped_files_directory=args.warp_dir,
+                      unwarped_files_directory=args.unwarp_dir)
+    
+    val_ds = My_dHCP_Data_Graph(validation_dataset_arr, edges = edges, projected = args.project, 
+                      rotations= args.test_rotations, 
+                      parity_choice=args.test_parity, 
+                      number_of_warps = args.test_warps,
+                      normalisation = args.normalisation,
+                      warped_files_directory=args.warp_dir,
+                      unwarped_files_directory=args.unwarp_dir)
+    
+    
+    
+    test_ds = My_dHCP_Data_Graph(test_dataset_arr, edges = edges, projected = args.project, 
+                      rotations= False, 
+                      parity_choice=args.test_parity, 
+                      number_of_warps = args.test_warps,
+                      normalisation = args.normalisation,
+                      warped_files_directory=args.warp_dir,
+                      unwarped_files_directory=args.unwarp_dir)
+    
+
+    rot_test_ds = My_dHCP_Data_Graph(test_dataset_arr,edges = edges,  projected = args.project, 
+                      rotations= True, 
+                      parity_choice=args.test_parity, 
+                      number_of_warps = args.test_warps,
+                      normalisation = args.normalisation,
+                      warped_files_directory=args.warp_dir,
+                      unwarped_files_directory=args.unwarp_dir)
+    
+    
+    return train_ds, val_ds, test_ds, rot_test_ds
+
 def load_dataloader(ds, dsarr, batch_size = 1, num_workers=1, shuffle = False, weighted = False):
     
     if weighted == False:
@@ -76,7 +122,21 @@ def load_dataloader(ds, dsarr, batch_size = 1, num_workers=1, shuffle = False, w
         loader = torch.utils.data.DataLoader(ds, batch_size, sampler = sampler, num_workers = num_workers)
     
     return loader
+
+def load_dataloader_graph(ds, dsarr, batch_size = 1, num_workers=1, shuffle = False, weighted = False):
+    from torch_geometric.data import DataLoader
+
+    if weighted == False:
+        loader = DataLoader(ds, batch_size, shuffle=shuffle, num_workers = num_workers)
+        
+    elif weighted == True:
+        sampler = make_sampler(dsarr)
+        loader = DataLoader(ds, batch_size, sampler = sampler, num_workers = num_workers)
     
+    return loader
+
+
+
 def make_sampler(arr):
     total = len(arr)
 
@@ -109,3 +169,7 @@ def make_fig(labels, outputs, savedir, name):
     plt.scatter(x = labels, y = outputs)
     plt.savefig(savedir+'/'+str(name))
     plt.close()
+    
+    
+    
+    
