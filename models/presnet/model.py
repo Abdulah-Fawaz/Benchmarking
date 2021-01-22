@@ -213,6 +213,8 @@ class presnet_regression_confounded(nn.Module):
         self.layer3 = self._make_layer(block, num_features[3], num_blocks, stride=num_strides[3])
         self.layer4 = self._make_layer(block, num_features[4], num_blocks, stride=num_strides[4])
 
+        self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
+
         self.linear = nn.Linear(FC_channels + 1, num_classes)
         self.dropout = nn.Dropout(0.5)
         # ----------------------------------------------------------------------
@@ -241,6 +243,11 @@ class presnet_regression_confounded(nn.Module):
 
         out = out.view(out.size(0), -1)
         out = self.dropout(out)
+        
+        m = self.conv11(m.unsqueeze(2))
+        m = nn.ReLU()(m)
+        m = m.reshape(m.shape[0],-1)
+        
         out = torch.cat([out,m], dim=1)
         out = self.linear(out)
 
