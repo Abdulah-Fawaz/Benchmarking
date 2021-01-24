@@ -287,7 +287,7 @@ class My_dHCP_Data(torch.utils.data.Dataset):
          
                 
         if self.projected == True:
-            image = griddata(xy_points, image.T, grid, 'linear')
+            image = griddata(xy_points, image.T, grid, 'nearest')
             image = torch.Tensor(image.reshape(170,170,4)).permute(2,0,1)
             
                 

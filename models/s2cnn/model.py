@@ -562,7 +562,9 @@ class s2cnn_regression_confounded(nn.Module):
 
 
 
-        self.linear = nn.Linear(num_features[4] + 4, num_classes)
+        self.linear = nn.Linear(num_features[4] + 4, 500)
+        self.linear2 = nn.Linear(500, num_classes)
+        self.relu = nn.ReLU()
         #self.dropout = nn.Dropout(0.7)
         # ----------------------------------------------------------------------
         #channels1, channels2, current_bandwidth, beta, shortcut=True):
@@ -604,6 +606,8 @@ class s2cnn_regression_confounded(nn.Module):
         
         
         out = self.linear(out)
+        out = self.relu(out)
+        out = self.linear2(out)
         
         
         return out

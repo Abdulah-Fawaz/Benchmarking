@@ -215,7 +215,7 @@ class presnet_regression_confounded(nn.Module):
 
         self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
 
-        self.linear = nn.Linear(FC_channels + 1, num_classes)
+        self.linear = nn.Linear(FC_channels + 4, num_classes)
         self.dropout = nn.Dropout(0.5)
         # ----------------------------------------------------------------------
 
