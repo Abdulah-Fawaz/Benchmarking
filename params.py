@@ -45,6 +45,7 @@ def parse(args=None):
                                                     'sphericalunet', 
                                                     'esteves', 
                                                     's2cnn', 
+                                                    's2cnn_small',
                                                     'chebnet', 
                                                     'gconvnet',
                                                     'snug'], default='',
