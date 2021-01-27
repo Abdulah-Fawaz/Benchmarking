@@ -121,14 +121,20 @@ def train_graph(args, model, optimiser,criterion, trainLoader,device, epoch_coun
         data.y = data.y.to(device)
         data.edge_index = data.edge_index.to(device)
         
+        if args.task == 'regression_confounded':
+            data.metadata = data.metadata.to(device)
+        
+        
         model.train()        
         optimiser.zero_grad()
 
         estimates = model(data)
-        labels = data.y.unsqueeze(1)
-        
+
+        labels = data.y#.unsqueeze(1)
+
+
             
-        loss = criterion(estimates, labels) 
+        loss = criterion()(estimates, labels) 
 
         loss.backward()
         optimiser.step()
@@ -158,8 +164,13 @@ def validate_graph(args, model, criterion, valLoader, current_best,patience, dev
             
             data.edge_index = data.edge_index.to(device)
 
+
+
+            if args.task == 'regression_confounded':
+                data.metadata = data.metadata.to(device)
+                
             estimates = model(data)
-            labels = data.y.unsqueeze(1)
+            labels = data.y#.unsqueeze(1)
             
                 
             
@@ -175,6 +186,8 @@ def validate_graph(args, model, criterion, valLoader, current_best,patience, dev
                 
         val_loss = np.mean(running_losses)
         print('validation ', val_loss)
+        
+    
         if val_loss < current_best:
             current_best = np.mean(running_losses)
             torch.save(model, savedir+'/best_model')
@@ -249,7 +262,7 @@ def test_regression(args, model, criterion, testLoader,device):
     return MAE, test_labels, test_outputs
 
 
-def test_regression_graph(args, model, criterion, device, testLoader):
+def test_regression_graph(args, model, criterion, testLoader,device):
     model.eval()
     
     model_name = args.model
@@ -257,15 +270,18 @@ def test_regression_graph(args, model, criterion, device, testLoader):
     test_labels = []
     model.eval()
     
-    for i, data in enumerate(valLoader): 
+    for i, data in enumerate(testLoader): 
         
         
         data.x = data.x.to(device)
         data.y = data.y.to(device)
         data.edge_index = data.edge_index.to(device)
+        
+        if args.task == 'regression_confounded':
+            data.metadata = data.metadata.to(device)
 
         test_output = model(data)
-        test_label = data.y.unsqueeze(1)
+        test_label = data.y#.unsqueeze(1)
             
  
         test_outputs.append(test_output.item())
@@ -290,9 +306,15 @@ def load_testing(args):
 
 
 def load_testing_graph(args):
-    testing_to_load = 'test_'+args.task + '_graph'
+    if args.task in ['regression', 'regression_confounded']:
+        testing_to_load = 'test_regression_graph'
+    
+    else:
+        testing_to_load = 'test_'+args.task
 
     test_function = import_from('utils', testing_to_load)
     return test_function
+
+
 
             

@@ -520,8 +520,10 @@ class My_dHCP_Data_Graph(torch.utils.data.Dataset):
         label = self.label[idx]
         if self.input_arr.shape[1] > 2:
             
-            self.metadata = input_arr[:,1:-1]
-            
+            self.metadata = self.input_arr[:,1:-1]
+
+            metadata = self.metadata[idx]
+
         else:
             self.metadata = None
             
@@ -551,16 +553,17 @@ class My_dHCP_Data_Graph(torch.utils.data.Dataset):
 
             label = torch.Tensor( [label] )
             
-            if self.metadata != None:
+            if isinstance(metadata,np.ndarray):
                 
-                metadata = torch.Tensor( [self.metadata] )
-       
+                metadata = torch.Tensor( [metadata] )#.squeeze(1)
+         
+                
 
-        
-        if self.metadata != None:
+                
+        if hasattr(metadata,'shape'):
             
-            sample = Data(x = image.permute(1,0).to(self.chosen_device), meta =  metadata, edge_index = self.edges.to(self.chosen_device), 
-                          y =  label.to(self.chosen_device))
+            sample = Data(x = image.permute(1,0), metadata =  metadata, edge_index = self.edges, 
+                          y =  label)
         
         else:
             sample = Data(x = image.permute(1,0), edge_index = self.edges, 

@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Created on Mon Jan 25 01:56:38 2021
+
+@author: fa19
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
 Created on Fri Jun 12 15:11:43 2020
 
 @author: fa19
@@ -202,12 +210,84 @@ class GraphResidualBlock(nn.Module):
 
         return out
         
-    
-class chebnet_regression(nn.Module):
+class gconvnet_regression(nn.Module):
 
-    def __init__(self, num_features,  block=GraphResidualBlock, layers=[2,2,2,2], conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
+    def __init__(self, num_features, conv_style=gcnconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
+        super(gconvnet_regression, self).__init__()
+        self.conv_style = conv_style
+        self.device = device
+        self.in_channels = 4
+        self.conv1 = conv_style(self.in_channels, num_features[0])
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
+        self.pool1 = hex_pooling(0, self.device)
+        self.pool2 = hex_pooling(1, self.device)
+        self.pool3 = hex_pooling(2, self.device)
+        self.pool4 = hex_pooling(3, self.device)
+        
+        self.activation_function = activation_function
+        
+        self.fc = nn.Linear(num_features[3]*162, 500)
+        self.fc2 = nn.Linear(500, 1)
+        self.dropout = nn.Dropout(p=0.5,inplace=True)
+        
+
+        #print "block.expansion=",block.expansion
+#        self.fc = nn.Linear(512 * block.expansion, num_classes)
+
+#        for m in self.modules():
+#            if isinstance(m, nn.Conv2d):
+#                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+#                m.weight.data.normal_(0, math.sqrt(2. / n))
+#            elif isinstance(m, nn.BatchNorm2d):
+#                m.weight.data.fill_(1)
+#                m.bias.data.zero_()
+
+
+
+    def forward(self, data):
+        x = data.x
+        e = data.edge_index
+
+        x = self.conv1(x,e)
+        x = self.activation_function(x)
+        x = self.pool1(x)
+        e = edges_list[1].to('cuda')
+        
+
+        x = self.conv2(x,e)
+        x = self.activation_function(x)
+        x = self.pool2(x)
+        e = edges_list[2].to('cuda')
+        
+        
+        x = self.conv3(x,e)
+        x = self.activation_function(x)
+        x = self.pool3(x)
+        e = edges_list[3].to('cuda')
+        
+        
+        x = self.conv4(x,e)
+        x = self.activation_function(x)
+        x = self.pool4(x)
+        
+        
+        x = x.flatten()
+#        #print "view: ",x.data.shape        
+        x = self.dropout(x)
+
+        x = self.fc(x)
+        x = self.activation_function(x)
+        x = self.fc2(x)
+        
+        return x         
+
+class gconvnet_regression_2(nn.Module):
+
+    def __init__(self, num_features,  block=GraphResidualBlock, layers=[2,2,2,2], conv_style=gcnconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
         self.inchans = num_features[0]
-        super(chebnet_regression, self).__init__()
+        super(gconvnet_regression_2, self).__init__()
         self.conv_style = conv_style
         self.device = device
         self.in_channels = 4
@@ -282,37 +362,33 @@ class chebnet_regression(nn.Module):
         x = self.fc(x)
 
         return x       
+    
+    
+    
+class gconvnet_regression_confounded(nn.Module):
 
-
-
-
-class chebnet_regression_confounded(nn.Module):
-
-    def __init__(self, num_features,  block=GraphResidualBlock, layers=[2,2,2,2], conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
-        self.inchans = num_features[0]
-        super(chebnet_regression_confounded, self).__init__()
+    def __init__(self, num_features, conv_style=gcnconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
+        super(gconvnet_regression_confounded, self).__init__()
         self.conv_style = conv_style
         self.device = device
         self.in_channels = 4
         self.conv1 = conv_style(self.in_channels, num_features[0])
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
         self.pool1 = hex_pooling(0, self.device)
+        self.pool2 = hex_pooling(1, self.device)
+        self.pool3 = hex_pooling(2, self.device)
+        self.pool4 = hex_pooling(3, self.device)
+        
         self.activation_function = activation_function
         
-
-        #self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        
-        self.layer1 = self._make_layer(block, num_features[0], layers[0], 1,1, device)
-        self.layer2 = self._make_layer(block,  num_features[1], layers[1],  1,1, device)
-        self.layer3 = self._make_layer(block,  num_features[2], layers[2], 2,2, device)
-        self.layer4 = self._make_layer(block,  num_features[3], layers[3], 3,3, device)
-        self.fc1 = nn.Linear(num_features[3]*162 +4, 500)
+        self.fc = nn.Linear(num_features[3]*162 +4, 500)
         self.fc2 = nn.Linear(500, 1)
-
-
-        self.dropout = nn.Dropout(p=0.5,inplace=True)
-
-
+        self.dropout = nn.Dropout(p=0.5,inplace=False)
+        
         self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
+
 
         #print "block.expansion=",block.expansion
 #        self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -325,60 +401,52 @@ class chebnet_regression_confounded(nn.Module):
 #                m.weight.data.fill_(1)
 #                m.bias.data.zero_()
 
-    def _make_layer(self, block, chans, blocks, ico_level, edge_level, device):
-        downsample = None
 
-        if self.inchans != chans * block.expansion:
-            downsample = do_downsample(self.inchans, chans, self.conv_style, ico_level,device)
-        else:
-            downsample= None
-        layers = []
-        
-        layers.append(block(self.inchans, chans,  self.conv_style,self.activation_function, 
-                            edge_level, downsample, device))        
-        self.inchans = chans * block.expansion
-        
-        for i in range(1, blocks):
-            layers.append(block(self.inchans, chans, self.conv_style, self.activation_function, 
-                                edge_level+1, None, device))
-        
-
-        return nn.Sequential(*layers)
 
     def forward(self, data):
         x = data.x
         e = data.edge_index
         m = data.metadata
         x = self.conv1(x,e)
-
         x = self.activation_function(x)
         x = self.pool1(x)
+        e = edges_list[1].to('cuda')
+        
 
-        x = self.layer1(x)
-
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-#        x = self.avgpool(x)
-#        #print "avepool: ",x.data.shape
-
+        x = self.conv2(x,e)
+        x = self.activation_function(x)
+        x = self.pool2(x)
+        e = edges_list[2].to('cuda')
+        
+        
+        x = self.conv3(x,e)
+        x = self.activation_function(x)
+        x = self.pool3(x)
+        e = edges_list[3].to('cuda')
+        
+        
+        x = self.conv4(x,e)
+        x = self.activation_function(x)
+        x = self.pool4(x)
+        
+        
         x = x.flatten()
 #        #print "view: ",x.data.shape        
         x = self.dropout(x)
+        
         m = self.conv11(m.unsqueeze(1))
         m = nn.LeakyReLU()(m.squeeze(1))
         m = m.flatten()
         
         x = torch.cat([x,m], dim=0)
-        x = self.fc1(x)
+        x = self.fc(x)
         x = self.activation_function(x)
         x = self.fc2(x)
-
-
-        return x       
-
-
+        
+        return x     
+    
+    
+    
 
 class GraphResNet(nn.Module):
 
@@ -488,47 +556,5 @@ class do_downsample(nn.Module):
         x = self.conv1(x,e)
         
         x = self.pooling_method(x)
-        
-        return x
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-    
-        
         
     
