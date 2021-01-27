@@ -253,7 +253,7 @@ class My_dHCP_Data(torch.utils.data.Dataset):
             metadata = self.metadata[idx]
 
         else:
-            self.metadata = None
+            metadata = None
             
         
         if self.smoothing != False:
@@ -525,7 +525,7 @@ class My_dHCP_Data_Graph(torch.utils.data.Dataset):
             metadata = self.metadata[idx]
 
         else:
-            self.metadata = None
+            metadata = None
             
         
         if self.smoothing != False:
