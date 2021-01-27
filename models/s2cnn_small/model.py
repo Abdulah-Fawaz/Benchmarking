@@ -513,7 +513,7 @@ class s2cnn_small_regression(nn.Module):
         self.linear = nn.Sequential(
             # linear 1
             nn.BatchNorm1d(num_features[4]),
-            nn.Linear(in_features=num_features[4],num_classes))
+            nn.Linear(num_features[4],num_classes))
             
         
     def forward(self, x):
