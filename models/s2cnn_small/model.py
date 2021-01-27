@@ -520,10 +520,10 @@ class s2cnn_small_regression(nn.Module):
         # ------------------------------ task 2 -------------------------------
         # complete the forward pass
         out = F.relu(self.conv1(x))
-        out = F.relu(self.conv2(x))
-        out = F.relu(self.conv3(x))
-        out = F.relu(self.conv4(x))
-        out = F.relu(self.conv5(x))
+        out = F.relu(self.conv2(out))
+        out = F.relu(self.conv3(out))
+        out = F.relu(self.conv4(out))
+        out = F.relu(self.conv5(out))
 
         out = so3_integrate(out)
         out = self.linear(out)
