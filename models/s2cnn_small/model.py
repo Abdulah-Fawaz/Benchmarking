@@ -486,21 +486,21 @@ class s2cnn_small_regression(nn.Module):
                 nfeature_in  =  num_features[1],
                 nfeature_out = num_features[2],
                 b_in  = bandwidth//2,
-                b_out = bandwidth//4,
+                b_out = bandwidth//2,
                 grid=grid_so3_2)
         
         self.conv4 = SO3Convolution(
                 nfeature_in  =  num_features[2],
                 nfeature_out = num_features[3],
-                b_in  = bandwidth//4,
-                b_out = bandwidth//8,
+                b_in  = bandwidth//2,
+                b_out = bandwidth//4,
                 grid=grid_so3_3)
         
         self.conv5 = SO3Convolution(
                 nfeature_in  =  num_features[3],
                 nfeature_out = num_features[4],
-                b_in  = bandwidth//8,
-                b_out = bandwidth//16,
+                b_in  = bandwidth//4,
+                b_out = bandwidth//4,
                 grid=grid_so3_4)
         
         
