@@ -470,7 +470,7 @@ class s2cnn_small_regression(nn.Module):
 
 
         
-        self.conv2 = SO2Convolution(
+        self.conv2 = S2Convolution(
                 nfeature_in  =  num_features[0],
                 nfeature_out = num_features[1],
                 b_in  = bandwidth,
