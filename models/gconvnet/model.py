@@ -221,16 +221,17 @@ class gconvnet_regression(nn.Module):
         self.conv2 = conv_style(num_features[0], num_features[1])
         self.conv3 = conv_style(num_features[1], num_features[2])
         self.conv4 = conv_style(num_features[2], num_features[3])
-        self.pool1 = hex_pooling(0, self.device)
-        self.pool2 = hex_pooling(1, self.device)
-        self.pool3 = hex_pooling(2, self.device)
-        self.pool4 = hex_pooling(3, self.device)
+        self.pool1 = gnn.TopKPooling(num_features[0], 0.5)
+        self.pool2 = gnn.TopKPooling(num_features[1], 0.5)
+        self.pool3 = gnn.TopKPooling(num_features[2], 0.5)
+        self.pool4 = gnn.TopKPooling(num_features[3], 0.5)
+
         
         self.activation_function = activation_function
         
-        self.fc = nn.Linear(num_features[3]*162, 500)
-        self.fc2 = nn.Linear(500, 1)
-        self.dropout = nn.Dropout(p=0.5,inplace=True)
+        self.fc = nn.Linear(num_features[3] * 2, num_features[3])
+        self.fc2 = nn.Linear(num_features[3], 1)
+
         
 
         #print "block.expansion=",block.expansion
@@ -245,43 +246,43 @@ class gconvnet_regression(nn.Module):
 #                m.bias.data.zero_()
 
 
-
     def forward(self, data):
         x = data.x
         e = data.edge_index
+        batch = data.batch.to(self.device)
 
         x = self.conv1(x,e)
         x = self.activation_function(x)
-        x = self.pool1(x)
-        e = edges_list[1].to('cuda')
-        
+        x, e, _, batch, _, _ = self.pool1(x, e, None, batch)
+
 
         x = self.conv2(x,e)
         x = self.activation_function(x)
-        x = self.pool2(x)
-        e = edges_list[2].to('cuda')
+        x, e, _, batch, _, _ = self.pool2(x, e, None, batch)
+       
         
         
         x = self.conv3(x,e)
         x = self.activation_function(x)
-        x = self.pool3(x)
-        e = edges_list[3].to('cuda')
+        x, e, _, batch, _ , _= self.pool3(x, e, None, batch)
         
         
         x = self.conv4(x,e)
         x = self.activation_function(x)
-        x = self.pool4(x)
+        x, e, _, batch, _, _ = self.pool4(x, e, None, batch)
         
         
-        x = x.flatten()
+        x_max = gnn.global_max_pool(x, batch)
+        x_mean = gnn.global_mean_pool(x, batch)
+        
+        x_c = torch.cat([x_max, x_mean], dim = 1)
 #        #print "view: ",x.data.shape        
-        x = self.dropout(x)
 
-        x = self.fc(x)
-        x = self.activation_function(x)
-        x = self.fc2(x)
+        x_out = self.fc(x_c)
+        x_out = self.activation_function(x_out)
+        x_out = self.fc2(x_out)
         
-        return x         
+        return x_out.squeeze(1)
 
 class gconvnet_regression_2(nn.Module):
 
@@ -367,7 +368,7 @@ class gconvnet_regression_2(nn.Module):
     
 class gconvnet_regression_confounded(nn.Module):
 
-    def __init__(self, num_features, conv_style=gcnconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
+    def __init__(self, num_features, conv_style=gcnconv,activation_function=nn.LeakyReLU(), in_channels = 4, device='cuda'):
         super(gconvnet_regression_confounded, self).__init__()
         self.conv_style = conv_style
         self.device = device
@@ -387,9 +388,9 @@ class gconvnet_regression_confounded(nn.Module):
         self.fc2 = nn.Linear(500, 1)
         self.dropout = nn.Dropout(p=0.5,inplace=False)
         
-        self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
+        self.splits = torch.Tensor([32,37,100]).to(self.device)
 
-
+        self.fcm = nn.Linear(4,4)
         #print "block.expansion=",block.expansion
 #        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -404,12 +405,17 @@ class gconvnet_regression_confounded(nn.Module):
 
 
     def forward(self, data):
+        
         x = data.x
         e = data.edge_index
         m = data.metadata
+
         x = self.conv1(x,e)
+
         x = self.activation_function(x)
+
         x = self.pool1(x)
+
         e = edges_list[1].to('cuda')
         
 
@@ -434,11 +440,15 @@ class gconvnet_regression_confounded(nn.Module):
 #        #print "view: ",x.data.shape        
         x = self.dropout(x)
         
-        m = self.conv11(m.unsqueeze(1))
-        m = nn.LeakyReLU()(m.squeeze(1))
-        m = m.flatten()
+        f = torch.sum(self.splits<=m,dim=1).unsqueeze(1)
+        one_hot_target = (f == torch.arange(4).reshape(1, 4).to(self.device)).float()
         
-        x = torch.cat([x,m], dim=0)
+        one_hot_target = self.fcm(one_hot_target)
+        out_hot_target = self.activation_function(one_hot_target)
+        
+        one_hot_target=one_hot_target.squeeze(0) # remove if batch size >1
+
+        x = torch.cat([x,one_hot_target.T], dim=0)
         x = self.fc(x)
         x = self.activation_function(x)
         x = self.fc2(x)

@@ -290,10 +290,10 @@ class sphericalunet_regression_confounded(nn.Module):
 #        self.down5 = down_block(conv_layer, chs[4], chs[5], neigh_orders[4], neigh_orders[3])
 #        self.down6 = down_block(conv_layer, chs[5], chs[6], neigh_orders[5], neigh_orders[4])
         self.dropout = nn.Dropout(0.5)
-        self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
-        self.outc = nn.Sequential(
-                nn.Linear((num_features[3] * 642) +4, 1)
+        self.fc = nn.Sequential(
+                nn.Linear((num_features[3] * 642), 1)
                 )
+        self.outc=nn.Linear(2,1)
                 
         
     def forward(self, x, m):
@@ -308,13 +308,14 @@ class sphericalunet_regression_confounded(nn.Module):
 #        x7 = x7.flatten()
         out = x4.reshape(x4.shape[0], -1)
         out = self.dropout(out)
-        m = self.conv11(m.unsqueeze(2))
-        m = nn.ReLU()(m)
-        m = m.reshape(m.shape[0],-1)
         
-        out = torch.cat([out,m], dim=1)
+       
+        
+        
 
-        out = self.outc(out) 
+        out = self.fc(out) 
+        out = torch.cat([out,m], dim=1)
+        out=self.outc(out)
         return out
 
 

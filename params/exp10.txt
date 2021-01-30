@@ -1,9 +1,10 @@
 --model=gconvnet
 --project=False
---task=regression_confounded
+--task=regression
 --logdir=tmp/
 --in_channels=4
---dataset_arr=birth_age_confounded
---patience=100
+--dataset_arr=scan_age
+--patience=50
 --train_rotations=False
+--train_bsize=16
 --device=1

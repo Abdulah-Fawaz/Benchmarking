@@ -461,19 +461,14 @@ class s2cnn_small_regression(nn.Module):
         # ------------------------------ task 2 -------------------------------
         # complete convolutional and linear layers
         # step 1. Initialising the network with a 3 x3 conv and batch norm
-        
+        self.conv1 = nn.Conv2d(in_channels, num_features[0], kernel_size=1)
         grid_s2    =  s2_near_identity_grid(n_alpha=6, max_beta=np.pi/16, n_beta=1)
         grid_so3_1 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/16, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
         grid_so3_2 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/ 8, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
         grid_so3_3 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/ 4, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
         grid_so3_4 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/ 2, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
 
-        self.conv1 = S2Convolution(
-                nfeature_in  = in_channels,
-                nfeature_out = num_features[0],
-                b_in  = bandwidth,
-                b_out = bandwidth,
-                grid=grid_s2)
+
         
         self.conv2 = SO3Convolution(
                 nfeature_in  =  num_features[0],
