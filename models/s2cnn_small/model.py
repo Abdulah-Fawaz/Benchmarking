@@ -470,33 +470,33 @@ class s2cnn_small_regression(nn.Module):
 
 
         
-        self.conv2 = SO3Convolution(
+        self.conv2 = SO2Convolution(
                 nfeature_in  =  num_features[0],
                 nfeature_out = num_features[1],
                 b_in  = bandwidth,
                 b_out = bandwidth//2,
-                grid=grid_so3_1)
+                grid=grid_s2)
 
         self.conv3 = SO3Convolution(
                 nfeature_in  =  num_features[1],
                 nfeature_out = num_features[2],
                 b_in  = bandwidth//2,
                 b_out = bandwidth//2,
-                grid=grid_so3_2)
+                grid=grid_so3_1)
         
         self.conv4 = SO3Convolution(
                 nfeature_in  =  num_features[2],
                 nfeature_out = num_features[3],
                 b_in  = bandwidth//2,
                 b_out = bandwidth//4,
-                grid=grid_so3_3)
+                grid=grid_so3_2)
         
         self.conv5 = SO3Convolution(
                 nfeature_in  =  num_features[3],
                 nfeature_out = num_features[4],
                 b_in  = bandwidth//4,
                 b_out = bandwidth//4,
-                grid=grid_so3_4)
+                grid=grid_so3_3)
         
         
 
@@ -513,7 +513,9 @@ class s2cnn_small_regression(nn.Module):
     def forward(self, x):
         # ------------------------------ task 2 -------------------------------
         # complete the forward pass
+
         out = F.relu(self.conv1(x))
+
         out = F.relu(self.conv2(out))
         out = F.relu(self.conv3(out))
         out = F.relu(self.conv4(out))
