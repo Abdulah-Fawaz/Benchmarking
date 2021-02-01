@@ -155,7 +155,7 @@ class ResNet(nn.Module):
 hexes = [hex_6, hex_5, hex_4, hex_3, hex_2, hex_1]
 edges_list = [edge_index_6, edge_index_5, edge_index_4, edge_index_3, edge_index_2, edge_index_1]
 
-def chebconv(inchans, outchans, K = 5):
+def chebconv(inchans, outchans, K = 2):
     return gnn.ChebConv(inchans, outchans, K)
 
 def gcnconv(inchans, outchans):
@@ -202,12 +202,85 @@ class GraphResidualBlock(nn.Module):
 
         return out
         
-    
 class chebnet_regression(nn.Module):
+
+    def __init__(self, num_features, conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
+        super(chebnet_regression, self).__init__()
+        self.conv_style = conv_style
+        self.device = device
+        self.in_channels = 4
+        self.conv1 = conv_style(self.in_channels, num_features[0])
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
+        self.pool1 = gnn.TopKPooling(num_features[0], 0.5)
+        self.pool2 = gnn.TopKPooling(num_features[1], 0.5)
+        self.pool3 = gnn.TopKPooling(num_features[2], 0.5)
+        self.pool4 = gnn.TopKPooling(num_features[3], 0.5)
+
+        
+        self.activation_function = activation_function
+        
+        self.fc = nn.Linear(num_features[3] * 2, num_features[3])
+        self.fc2 = nn.Linear(num_features[3], 1)
+
+        
+
+        #print "block.expansion=",block.expansion
+#        self.fc = nn.Linear(512 * block.expansion, num_classes)
+
+#        for m in self.modules():
+#            if isinstance(m, nn.Conv2d):
+#                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+#                m.weight.data.normal_(0, math.sqrt(2. / n))
+#            elif isinstance(m, nn.BatchNorm2d):
+#                m.weight.data.fill_(1)
+#                m.bias.data.zero_()
+
+
+    def forward(self, data):
+        x = data.x
+        e = data.edge_index
+        batch = data.batch.to(self.device)
+
+        x = self.conv1(x,e)
+        x = self.activation_function(x)
+        x, e, _, batch, _, _ = self.pool1(x, e, None, batch)
+
+
+        x = self.conv2(x,e)
+        x = self.activation_function(x)
+        x, e, _, batch, _, _ = self.pool2(x, e, None, batch)
+       
+        
+        
+        x = self.conv3(x,e)
+        x = self.activation_function(x)
+        x, e, _, batch, _ , _= self.pool3(x, e, None, batch)
+        
+        
+        x = self.conv4(x,e)
+        x = self.activation_function(x)
+        x, e, _, batch, _, _ = self.pool4(x, e, None, batch)
+        
+        
+        x_max = gnn.global_max_pool(x, batch)
+        x_mean = gnn.global_mean_pool(x, batch)
+        
+        x_c = torch.cat([x_max, x_mean], dim = 1)
+#        #print "view: ",x.data.shape        
+
+        x_out = self.fc(x_c)
+        x_out = self.activation_function(x_out)
+        x_out = self.fc2(x_out)
+        
+        return x_out.squeeze(1)
+    
+class chebnet_regression_old(nn.Module):
 
     def __init__(self, num_features,  block=GraphResidualBlock, layers=[2,2,2,2], conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
         self.inchans = num_features[0]
-        super(chebnet_regression, self).__init__()
+        super(chebnet_regression_old, self).__init__()
         self.conv_style = conv_style
         self.device = device
         self.in_channels = 4
@@ -295,24 +368,21 @@ class chebnet_regression_confounded(nn.Module):
         self.device = device
         self.in_channels = 4
         self.conv1 = conv_style(self.in_channels, num_features[0])
-        self.pool1 = hex_pooling(0, self.device)
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
+        self.pool1 = gnn.TopKPooling(num_features[0], 0.5)
+        self.pool2 = gnn.TopKPooling(num_features[1], 0.5)
+        self.pool3 = gnn.TopKPooling(num_features[2], 0.5)
+        self.pool4 = gnn.TopKPooling(num_features[3], 0.5)
+
+        
         self.activation_function = activation_function
         
-
-        #self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.fc = nn.Linear(num_features[3] * 2 +4, num_features[3])
+        self.fc2 = nn.Linear(num_features[3], 1)
+        self.convm = nn.Conv1d(1,4, kernel_size = 1)
         
-        self.layer1 = self._make_layer(block, num_features[0], layers[0], 1,1, device)
-        self.layer2 = self._make_layer(block,  num_features[1], layers[1],  1,1, device)
-        self.layer3 = self._make_layer(block,  num_features[2], layers[2], 2,2, device)
-        self.layer4 = self._make_layer(block,  num_features[3], layers[3], 3,3, device)
-        self.fc1 = nn.Linear(num_features[3]*162 +4, 500)
-        self.fc2 = nn.Linear(500, 1)
-
-
-        self.dropout = nn.Dropout(p=0.5,inplace=True)
-
-
-        self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
 
         #print "block.expansion=",block.expansion
 #        self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -325,58 +395,55 @@ class chebnet_regression_confounded(nn.Module):
 #                m.weight.data.fill_(1)
 #                m.bias.data.zero_()
 
-    def _make_layer(self, block, chans, blocks, ico_level, edge_level, device):
-        downsample = None
-
-        if self.inchans != chans * block.expansion:
-            downsample = do_downsample(self.inchans, chans, self.conv_style, ico_level,device)
-        else:
-            downsample= None
-        layers = []
-        
-        layers.append(block(self.inchans, chans,  self.conv_style,self.activation_function, 
-                            edge_level, downsample, device))        
-        self.inchans = chans * block.expansion
-        
-        for i in range(1, blocks):
-            layers.append(block(self.inchans, chans, self.conv_style, self.activation_function, 
-                                edge_level+1, None, device))
-        
-
-        return nn.Sequential(*layers)
 
     def forward(self, data):
         x = data.x
         e = data.edge_index
-        m = data.metadata
+        batch = data.batch.to(self.device)
+        m = data.metadata.to(self.device)
+
         x = self.conv1(x,e)
-
         x = self.activation_function(x)
-        x = self.pool1(x)
+        x, e, _, batch, _, _ = self.pool1(x, e, None, batch)
 
-        x = self.layer1(x)
 
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-#        x = self.avgpool(x)
-#        #print "avepool: ",x.data.shape
-
-        x = x.flatten()
-#        #print "view: ",x.data.shape        
-        x = self.dropout(x)
-        m = self.conv11(m.unsqueeze(1))
-        m = nn.LeakyReLU()(m.squeeze(1))
-        m = m.flatten()
+        x = self.conv2(x,e)
+        x = self.activation_function(x)
+        x, e, _, batch, _, _ = self.pool2(x, e, None, batch)
+       
         
-        x = torch.cat([x,m], dim=0)
-        x = self.fc1(x)
+        
+        x = self.conv3(x,e)
         x = self.activation_function(x)
-        x = self.fc2(x)
+        x, e, _, batch, _ , _= self.pool3(x, e, None, batch)
+        
+        
+        x = self.conv4(x,e)
+        x = self.activation_function(x)
+        x, e, _, batch, _, _ = self.pool4(x, e, None, batch)
+        
+        
+        x_max = gnn.global_max_pool(x, batch)
+        x_mean = gnn.global_mean_pool(x, batch)
+        
+        x_c = torch.cat([x_max, x_mean], dim = 1)
+        
+        
+        m = self.convm(m.unsqueeze(1))
+        m = nn.LeakyReLU()(m.squeeze(1))
+        m = m.reshape(m.shape[0], -1)
+        
+        x_c = torch.cat([x_c,m], dim=1)
+#        #print "view: ",x.data.shape        
 
-
-        return x       
+        x_out = self.fc(x_c)
+        x_out = self.activation_function(x_out)
+        x_out = self.fc2(x_out)
+        
+        return x_out.squeeze(1)
+        
+        
+           
 
 
 

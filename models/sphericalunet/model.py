@@ -293,6 +293,9 @@ class sphericalunet_regression_confounded(nn.Module):
         self.fc = nn.Sequential(
                 nn.Linear((num_features[3] * 642), 1)
                 )
+
+        self.splits = torch.Tensor([32,37,100]).cuda()
+        self.fc1 = nn.Linear(5,5)
         self.outc=nn.Linear(2,1)
                 
         
@@ -310,11 +313,17 @@ class sphericalunet_regression_confounded(nn.Module):
         out = self.dropout(out)
         
        
+        f = torch.sum(self.splits<=m.cuda(),dim=1).unsqueeze(1).cuda()
+        one_hot_target = (f == torch.arange(4).cuda().reshape(1, 4)).float().cuda().T
         
+        m = m.reshape(m.shape[0], -1)
+        #one_hot_target = one_hot_target.reshape(one_hot_target.shape[0], -1)
+        factor = F.leaky_relu(self.fc1(torch.cat([m,one_hot_target.T], dim=1)))
         
-
         out = self.fc(out) 
-        out = torch.cat([out,m], dim=1)
+
+        out = torch.cat([out,factor], dim=1)
+
         out=self.outc(out)
         return out
 
