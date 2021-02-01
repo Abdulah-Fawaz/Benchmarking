@@ -527,7 +527,7 @@ class s2cnn_small_regression(nn.Module):
         # ---------------------------------------------------------------------
 
 
-class s2cnn_regression_confounded(nn.Module):
+class s2cnn_small_regression_confounded(nn.Module):
     def __init__(self, in_channels, num_features, block = ResidualBlock, num_classes=1, bandwidth = 85, beta = 16):
         '''
         Constructor input:
@@ -539,7 +539,7 @@ class s2cnn_regression_confounded(nn.Module):
                         equal the total number of activations returned from preceding layer)
             num_classes: (number of outputs of final layer)
         '''
-        super(s2cnn_regression_confounded, self).__init__()
+        super(s2cnn_small_regression_confounded, self).__init__()
 
         # ------------------------------ task 2 -------------------------------
         # complete convolutional and linear layers
