@@ -13,14 +13,14 @@ import pandas as pd
 
 
     
-df = pd.read_excel('dHCP_third_release.ods', engine = 'odf') # requires installation of odfpy (use pip or conda)
+df = pd.read_excel('/home/fa19/Downloads/dHCP_metadata_release3.xlsx') # requires installation of odfpy (use pip or conda)
 
 
 
 #### ############
 
 # CHOOSE DATA ARRRRAY HERE
-ds_array = np.load('birth_age_confounded/full.npy', allow_pickle=True)
+ds_array = np.load('bayley/full.npy', allow_pickle=True)
 
 
 ############

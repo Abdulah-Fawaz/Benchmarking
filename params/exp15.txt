@@ -1,0 +1,12 @@
+--model=sphericalunet
+--project=False
+--task=classification
+--logdir=tmp/
+--in_channels=9
+--criterion=NLL
+--dataset_arr=bayley
+--patience=100
+--train_rotations=False
+--unwarp_dir=/data/rsn/merged
+--warp_dir=/data/rsn/warped
+--device=0

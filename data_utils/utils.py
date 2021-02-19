@@ -113,12 +113,12 @@ def load_dataset_graph(train_dataset_arr, validation_dataset_arr, test_dataset_a
     return train_ds, val_ds, test_ds, rot_test_ds
 
 def load_dataloader(ds, dsarr, batch_size = 1, num_workers=1, shuffle = False, weighted = False):
-    
     if weighted == False:
         loader = torch.utils.data.DataLoader(ds, batch_size, shuffle=shuffle, num_workers = num_workers)
         
     elif weighted == True:
         sampler = make_sampler(dsarr)
+
         loader = torch.utils.data.DataLoader(ds, batch_size, sampler = sampler, num_workers = num_workers)
     
     return loader
@@ -132,6 +132,18 @@ def load_dataloader_graph(ds, dsarr, batch_size = 1, num_workers=1, shuffle = Fa
     elif weighted == True:
         sampler = make_sampler(dsarr)
         loader = DataLoader(ds, batch_size, sampler = sampler, num_workers = num_workers)
+    
+    return loader
+
+
+def load_dataloader_classification(ds, dsarr, batch_size = 1, num_workers=1, shuffle = False, weighted = False):
+    if weighted == False:
+        loader = torch.utils.data.DataLoader(ds, batch_size, shuffle=shuffle, num_workers = num_workers)
+        
+    elif weighted == True:
+        sampler = make_classification_sampler(dsarr)
+
+        loader = torch.utils.data.DataLoader(ds, batch_size, sampler = sampler, num_workers = num_workers)
     
     return loader
 
@@ -156,6 +168,23 @@ def make_sampler(arr):
     
     return sampler
 
+
+def make_classification_sampler(arr):
+    total = len(arr)
+    
+    frac_0 = total / np.sum(arr[:,-1] == 0)
+    frac_1 = total / np.sum(arr[:,-1] == 1)
+    
+    
+    weights = np.ones(len(arr)) * frac_0
+    weights[np.where(arr[:,-1] == 1)] = frac_1
+    weights = np.tile(weights,2)
+    
+    weights = torch.DoubleTensor(weights)                                       
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))    
+    
+    return sampler
+    
 def load_model(args):
     model_to_load = args.model + '_' + args.task
     model_dir = 'models/'+args.model 

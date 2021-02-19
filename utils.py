@@ -27,8 +27,8 @@ def validate(args, model, criterion, valLoader, current_best,patience, device, s
 
     with torch.no_grad():
         running_losses  = []
-        val_outputs = []
-        val_labels = []
+
+
         for i, batch in enumerate(valLoader):    
             images = batch['image']
             if model_name == 'sphericalunet':
@@ -40,18 +40,21 @@ def validate(args, model, criterion, valLoader, current_best,patience, device, s
             
             if task == 'regression':
                 estimates = model(images)
+                
+            elif task == 'classification':
+                estimates = model(images)
+                labels = labels.long().squeeze(1)
             elif task == 'regression_confounded':
                 metadata = batch['metadata'].to(device)
 
                 estimates = model(images,metadata)
             
                 # else might need to add confound of scan age
-                
-            val_labels.append(labels.item())
-            
-            val_outputs.append(estimates.item())
-                            
-            loss = criterion()(estimates, labels)
+           
+            if args.task == 'classification':
+                loss = criterion(weight = torch.Tensor([5,1]).cuda())(estimates, labels)
+            else:
+                loss = criterion()(estimates, labels)
 
             running_losses.append(loss.item())
                 
@@ -90,6 +93,10 @@ def train(args, model, optimiser,criterion, trainLoader, device, epoch_counter):
         if task == 'regression':
             estimates = model(images)
             
+        elif task == 'classification':
+            estimates = model(images)
+            labels = labels.long().squeeze(1)
+    
         elif task == 'regression_confounded':
             
             metadata = batch['metadata'].to(device)            
@@ -97,7 +104,13 @@ def train(args, model, optimiser,criterion, trainLoader, device, epoch_counter):
 
             estimates = model(images,metadata)
             
-        loss = criterion()(estimates, labels)
+        if args.task == 'classification':
+#            loss = criterion(weight = torch.Tensor([10,1]).cuda())(estimates, labels)
+            loss = criterion()(estimates, labels)
+
+        else:
+            loss = criterion()(estimates, labels)
+            
         optimiser.zero_grad()
 
         loss.backward()
@@ -211,6 +224,8 @@ def pick_criterion(args):
         criterion = nn.MSELoss
     elif args.criterion == 'L1':
         criterion =  nn.L1Loss
+    elif args.criterion == 'NLL':
+        criterion = nn.NLLLoss
     #### TO DO ##### - ADD  OTHER CRITERIONS FOR OTHER TASKS
     
     return criterion
@@ -260,6 +275,42 @@ def test_regression(args, model, criterion, testLoader,device):
     MAE =  np.mean(np.abs(np.array(test_outputs)-np.array(test_labels))) 
     
     return MAE, test_labels, test_outputs
+
+
+def test_classification(args, model, criterion, testLoader,device):
+    model.eval()
+    task =  args.task
+    model_name = args.model
+    test_predictions = []
+    test_labels = []
+    model.eval()
+    for i, batch in enumerate(testLoader):
+        test_images = batch['image']
+        if model_name == 'sphericalunet':
+            test_images = test_images.permute(2,1,0)
+
+
+        test_images = test_images.to(device)
+        
+        test_label = batch['label'].to(device)
+    
+    #    test_labels = test_labels.unsqueeze(1)
+        test_output = model(test_images)
+            
+        prediction = torch.argmax(test_output)
+        
+    
+        test_predictions.append(prediction.item())
+        test_labels.append(test_label.item())
+    
+     
+    numpy_preds = np.array(test_predictions)
+    numpy_labels = np.array(test_labels)
+    
+    matching = (numpy_preds == numpy_labels)
+    accuracy = sum(matching)/len(matching)
+    failure = 1-accuracy
+    return failure, test_labels, test_predictions
 
 
 def test_regression_graph(args, model, criterion, testLoader,device):

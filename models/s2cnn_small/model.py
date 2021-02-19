@@ -582,7 +582,7 @@ class s2cnn_small_regression_confounded(nn.Module):
                 b_out = bandwidth//4,
                 grid=grid_so3_3)
 
-        self.conv11 = nn.Conv1d(1,4, kernel_size = 1)
+        self.convm = nn.Conv1d(1,4, kernel_size = 1)
 
 
 
@@ -610,7 +610,7 @@ class s2cnn_small_regression_confounded(nn.Module):
 
 
 
-        m = self.conv11(m.unsqueeze(2))
+        m = self.conv1m(m.unsqueeze(2))
         m = nn.ReLU()(m)
         m = m.reshape(m.shape[0],-1)
         

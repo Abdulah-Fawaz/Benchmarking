@@ -43,21 +43,24 @@ def parse(args=None):
     
     parser.add_argument('--model', '-m', choices = ['presnet', 
                                                     'sphericalunet', 
-                                                    'esteves', 
+                                                    'monet', 
                                                     's2cnn', 
                                                     's2cnn_small',
                                                     'chebnet', 
+                                                    'chebnet_nopool',
                                                     'gconvnet',
+                                                    'gconvnet_nopool',
+                                    
                                                     'snug'], default='',
                         help='model name (a function beginning with the same name must exist in models.py)')
     
     parser.add_argument('--task', choices=['regression', 'regression_confounded','classification', 'segmentation'], default='regression',
                         help='model name (a function ending with the same name must exist in models.py)')
 
-    parser.add_argument('--criterion', choices=['L1', 'L2'], default='L2',
+    parser.add_argument('--criterion', choices=['L1', 'L2', 'NLL'], default='L2',
                         help='criterion is the chosen loss function')
 
-    parser.add_argument('--dataset_arr', choices=['scan_age', 'birth_age', 'birth_age_confounded','baileys', 'segmentation'], default='',
+    parser.add_argument('--dataset_arr', choices=['scan_age', 'birth_age', 'birth_age_confounded','bayley', 'segmentation'], default='',
                         help='Choose which dataset arr file we are using. Must exist with same name as dataset_arrs folder')
 
 

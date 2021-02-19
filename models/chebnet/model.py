@@ -361,8 +361,7 @@ class chebnet_regression_old(nn.Module):
 
 class chebnet_regression_confounded(nn.Module):
 
-    def __init__(self, num_features,  block=GraphResidualBlock, layers=[2,2,2,2], conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
-        self.inchans = num_features[0]
+    def __init__(self, num_features, conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 5, device='cuda'):
         super(chebnet_regression_confounded, self).__init__()
         self.conv_style = conv_style
         self.device = device
@@ -376,12 +375,13 @@ class chebnet_regression_confounded(nn.Module):
         self.pool3 = gnn.TopKPooling(num_features[2], 0.5)
         self.pool4 = gnn.TopKPooling(num_features[3], 0.5)
 
-        
+                
+        self.convm = nn.Conv1d(1,4, kernel_size=1)
         self.activation_function = activation_function
         
-        self.fc = nn.Linear(num_features[3] * 2 +4, num_features[3])
+        self.fc = nn.Linear((num_features[3] * 2) + 4, num_features[3])
         self.fc2 = nn.Linear(num_features[3], 1)
-        self.convm = nn.Conv1d(1,4, kernel_size = 1)
+
         
 
         #print "block.expansion=",block.expansion
@@ -401,7 +401,8 @@ class chebnet_regression_confounded(nn.Module):
         e = data.edge_index
         batch = data.batch.to(self.device)
         m = data.metadata.to(self.device)
-
+        
+        
         x = self.conv1(x,e)
         x = self.activation_function(x)
         x, e, _, batch, _, _ = self.pool1(x, e, None, batch)
@@ -427,15 +428,13 @@ class chebnet_regression_confounded(nn.Module):
         x_mean = gnn.global_mean_pool(x, batch)
         
         x_c = torch.cat([x_max, x_mean], dim = 1)
-        
-        
-        m = self.convm(m.unsqueeze(1))
-        m = nn.LeakyReLU()(m.squeeze(1))
-        m = m.reshape(m.shape[0], -1)
-        
-        x_c = torch.cat([x_c,m], dim=1)
 #        #print "view: ",x.data.shape        
+        m = self.convm(m.unsqueeze(1))
+        m = nn.ReLU()(m)
+        m = m.reshape(m.shape[0],-1)
 
+        x_c = torch.cat([x_c, m], dim=1)
+        
         x_out = self.fc(x_c)
         x_out = self.activation_function(x_out)
         x_out = self.fc2(x_out)

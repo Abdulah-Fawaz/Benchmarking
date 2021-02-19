@@ -262,6 +262,60 @@ class sphericalunet_regression(nn.Module):
         out = self.outc(out) 
         return out
 
+
+
+class sphericalunet_classification(nn.Module):
+    """Define the Spherical UNet structure
+
+    """    
+    def __init__(self, num_features, in_channels):
+        """ Initialize the Spherical UNet.
+
+        Parameters:
+            in_ch (int) - - input features/channels
+            out_ch (int) - - output features/channels
+        """
+        super(sphericalunet_classification, self).__init__()
+
+        #neigh_indices_10242, neigh_indices_2562, neigh_indices_642, neigh_indices_162, neigh_indices_42 = Get_indices_order()
+        #neigh_orders_10242, neigh_orders_2562, neigh_orders_642, neigh_orders_162, neigh_orders_42, neigh_orders_12 = Get_neighs_order()
+        
+        neigh_orders = my_mat_Get_2ring_neighs_order()
+
+        
+        conv_layer = tworing_conv_layer
+
+        self.down1 = down_block(conv_layer, in_channels, num_features[0], neigh_orders[0], None, True)
+        self.down2 = down_block(conv_layer, num_features[0], num_features[1], neigh_orders[1], neigh_orders[0])
+        self.down3 = down_block(conv_layer, num_features[1], num_features[2], neigh_orders[2], neigh_orders[1])
+        self.down4 = down_block(conv_layer, num_features[2], num_features[3], neigh_orders[3], neigh_orders[2])
+#        self.down5 = down_block(conv_layer, chs[4], chs[5], neigh_orders[4], neigh_orders[3])
+#        self.down6 = down_block(conv_layer, chs[5], chs[6], neigh_orders[5], neigh_orders[4])
+        self.dropout = nn.Dropout(0.7)
+
+        self.outc = nn.Sequential(
+                nn.Linear(num_features[3] * 642, 2)
+                )
+        self.log = nn.LogSoftmax(dim=1)
+                
+        
+    def forward(self, x):
+        x2 = self.down1(x)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x4 = self.down4(x4)
+#        x6 = self.down5(x5)
+#        x7 = self.down6(x6)
+        x4=x4.permute(2,0,1)
+
+#        x7 = x7.flatten()
+        out = x4.reshape(x4.shape[0], -1)
+        out = self.dropout(out)
+
+        out = self.outc(out) 
+        out = self.log(out)
+        return out
+
 class sphericalunet_regression_confounded(nn.Module):
     """Define the Spherical UNet structure
 
@@ -289,14 +343,12 @@ class sphericalunet_regression_confounded(nn.Module):
         self.down4 = down_block(conv_layer, num_features[2], num_features[3], neigh_orders[3], neigh_orders[2])
 #        self.down5 = down_block(conv_layer, chs[4], chs[5], neigh_orders[4], neigh_orders[3])
 #        self.down6 = down_block(conv_layer, chs[5], chs[6], neigh_orders[5], neigh_orders[4])
+        self.convm=nn.Conv1d(1,4, kernel_size=1)
         self.dropout = nn.Dropout(0.5)
         self.fc = nn.Sequential(
-                nn.Linear((num_features[3] * 642), 1)
+                nn.Linear((num_features[3] * 642 + 4), 1)
                 )
 
-        self.splits = torch.Tensor([32,37,100]).cuda()
-        self.fc1 = nn.Linear(5,5)
-        self.outc=nn.Linear(2,1)
                 
         
     def forward(self, x, m):
@@ -312,19 +364,14 @@ class sphericalunet_regression_confounded(nn.Module):
         out = x4.reshape(x4.shape[0], -1)
         out = self.dropout(out)
         
-       
-        f = torch.sum(self.splits<=m.cuda(),dim=1).unsqueeze(1).cuda()
-        one_hot_target = (f == torch.arange(4).cuda().reshape(1, 4)).float().cuda().T
+        m = self.convm(m.unsqueeze(2))
+        m = nn.ReLU()(m)
+        m = m.reshape(m.shape[0],-1)
         
-        m = m.reshape(m.shape[0], -1)
-        #one_hot_target = one_hot_target.reshape(one_hot_target.shape[0], -1)
-        factor = F.leaky_relu(self.fc1(torch.cat([m,one_hot_target.T], dim=1)))
-        
+        out = torch.cat([out, m], dim=1)
         out = self.fc(out) 
 
-        out = torch.cat([out,factor], dim=1)
-
-        out=self.outc(out)
+        
         return out
 
 

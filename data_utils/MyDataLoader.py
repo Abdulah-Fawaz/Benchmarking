@@ -14,9 +14,30 @@ import random
 from scipy.interpolate import griddata
 
 
+means_birth_age = torch.Tensor([1.18443463, 0.0348339 , 1.02189593, 0.12738451])
+stds_birth_age = torch.Tensor([0.39520042, 0.19205919, 0.37749157, 4.16265044])
+
+
+means_birth_age_confounded = means_birth_age
+stds_birth_age_confounded = stds_birth_age
+
+
+
+
+means_scan_age = torch.Tensor([1.16332048, 0.03618059, 1.01341462, 0.09550486])
+stds_scan_age = torch.Tensor([0.39418309, 0.18946538, 0.37818974, 4.04483381])
+
+
+
+means_bayley = torch.Tensor([0.03561912, 0.1779468,  1.02368241, 1.30365072, 1.42005161,  1.80373678, 1.0485854,  1.44855442,  0.74604417])
+stds_bayley = torch.Tensor([0.19094736,  4.11706815,  0.37789417,  4.61303946,  5.08495779,  4.94774891, 4.72248912, 4.22112396, 4.48455344])
+
+
 means = torch.Tensor([1.1267, 0.0345, 1.0176, 0.0556])
 stds = torch.Tensor([0.3522, 0.1906, 0.3844, 4.0476])
 
+means = means_bayley
+stds = stds_bayley
 
 rotation_arr = np.load('data/rotations_array.npy').astype(int)
 reversing_arr = np.load('data/reversing_arr.npy')
@@ -37,8 +58,8 @@ from torch_geometric.data import Data
 
 class My_dHCP_Data(torch.utils.data.Dataset):
 
-    def __init__(self, input_arr, warped_files_directory, unwarped_files_directory, rotations = False,
-                 number_of_warps = 0, parity_choice = 'left', smoothing = False, normalisation = None, projected =False, sample_only = True, output_as_torch = True ):
+    def __init__(self, input_arr, warped_files_directory, unwarped_files_directory,  rotations = False,
+                 number_of_warps = 0, parity_choice = 'left', smoothing = False, normalisation = None, projected =False, sample_only = True, output_as_torch = True, *args):
         
         """
         
@@ -102,7 +123,7 @@ class My_dHCP_Data(torch.utils.data.Dataset):
         self.number_of_warps = number_of_warps
         
         self.parity = parity_choice
-            
+
         self.smoothing = smoothing
         self.normalisation = normalisation
         self.sample_only = sample_only
@@ -288,7 +309,7 @@ class My_dHCP_Data(torch.utils.data.Dataset):
                 
         if self.projected == True:
             image = griddata(xy_points, image.T, grid, 'nearest')
-            image = torch.Tensor(image.reshape(170,170,4)).permute(2,0,1)
+            image = torch.Tensor(image.reshape(170,170,9)).permute(2,0,1)
             
                 
         if hasattr(metadata,'shape'):
