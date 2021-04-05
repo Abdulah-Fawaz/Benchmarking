@@ -54,10 +54,13 @@ def main():
     print(dsarr)
     task=args.task
     print(task)
+    print(device)
 
-    
+        
+
     chosen_model = load_model(args)
-    
+    features = [int(item) for item in args.features.split(',')]
+    model = chosen_model(in_channels = args.in_channels, num_features = features)
     model = torch.load(model_dir).to(device)
     model.eval()
     
