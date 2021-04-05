@@ -695,7 +695,7 @@ class s2cnn_small_regression_confounded(nn.Module):
 
 
 
-        m = self.conv1m(m.unsqueeze(2))
+        m = self.convm(m.unsqueeze(2))
         m = nn.ReLU()(m)
         m = m.reshape(m.shape[0],-1)
         

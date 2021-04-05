@@ -61,7 +61,7 @@ def main():
     chosen_model = load_model(args)
     print('this is chosen model', chosen_model)
     features = [int(item) for item in args.features.split(',')]
-#    model = chosen_model(in_channels = args.in_channels, num_features = features)
+    model = chosen_model(in_channels = args.in_channels, num_features = features)
     print('yes')
 #    model = model.to(device)
     model = torch.load(model_dir).to(device)
