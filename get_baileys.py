@@ -6,7 +6,7 @@ Created on Mon Feb  8 16:49:59 2021
 @author: fa19
 """
 
-
+import os
 import numpy as np
 import pandas as pd
 
@@ -19,6 +19,8 @@ df = f[['participationid', 'cog_comp']].dropna()
 df2 = df[df['cog_comp']!=90.0]
 
 df3 = df2[df2['cog_comp']!=95.0]
+df3 = df3[df3['cog_comp']!=100.0]
+df3 = df3[df3['cog_comp']!=105.0]
 
 list_of_subjects = os.listdir('/data/rsn/merged')
 list_of_subjects = [x for x in list_of_subjects if 'L' in x]

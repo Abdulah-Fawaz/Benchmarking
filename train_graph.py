@@ -29,7 +29,7 @@ import torch.nn as nn
 from utils import validate_graph, train_graph, pick_criterion, load_optimiser, import_from, load_testing_graph
 
 from data_utils.MyDataLoader import My_dHCP_Data_Graph
-from data_utils.utils import load_dataloader_graph, load_dataset_graph,load_dataset_arrays, load_model, make_fig
+from data_utils.utils import load_dataloader_graph,load_dataloader_graph_classification, load_dataset_graph,load_dataset_arrays, load_model, make_fig
 import json
 from json.decoder import JSONDecodeError
 
@@ -152,11 +152,17 @@ def main():
     train_ds, val_ds, test_ds, rot_test_ds = load_dataset_graph(train_arr, val_arr, test_arr, args)
     train_weighted = args.weighted_sampling 
     train_shuffle = 1 - train_weighted
-
-    train_loader = load_dataloader_graph(train_ds,train_arr,  batch_size = args.train_bsize, num_workers=2, shuffle = train_shuffle, weighted=train_weighted) 
-    val_loader = load_dataloader_graph(val_ds,val_arr, shuffle = True, num_workers=1)
-    test_loader =  load_dataloader_graph(test_ds, test_arr, shuffle = False, num_workers=1)
-    rot_test_loader = load_dataloader_graph(rot_test_ds, test_arr, shuffle = False, num_workers=1)
+    if args.task == 'classification':
+        train_loader = load_dataloader_graph_classification(train_ds,train_arr,  batch_size = args.train_bsize, num_workers=2, shuffle = train_shuffle, weighted=train_weighted) 
+        val_loader = load_dataloader_graph_classification(val_ds,val_arr, shuffle = True, num_workers=1)
+        test_loader =  load_dataloader_graph_classification(test_ds, test_arr, shuffle = False, num_workers=1)
+        rot_test_loader = load_dataloader_graph_classification(rot_test_ds, test_arr, shuffle = False, num_workers=1)
+           
+    else:
+        train_loader = load_dataloader_graph(train_ds,train_arr,  batch_size = args.train_bsize, num_workers=2, shuffle = train_shuffle, weighted=train_weighted) 
+        val_loader = load_dataloader_graph(val_ds,val_arr, shuffle = True, num_workers=1)
+        test_loader =  load_dataloader_graph(test_ds, test_arr, shuffle = False, num_workers=1)
+        rot_test_loader = load_dataloader_graph(rot_test_ds, test_arr, shuffle = False, num_workers=1)
         
         
     chosen_model = load_model(args)

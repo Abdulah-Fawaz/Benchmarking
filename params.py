@@ -73,7 +73,6 @@ def parse(args=None):
     parser.add_argument('--device', type = int, default=0,
                         help='Which CUDA device to run on')
 
-    
 
 
     ######## logging and saving params ###################

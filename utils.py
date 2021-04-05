@@ -52,7 +52,7 @@ def validate(args, model, criterion, valLoader, current_best,patience, device, s
                 # else might need to add confound of scan age
            
             if args.task == 'classification':
-                loss = criterion(weight = torch.Tensor([5,1]).cuda())(estimates, labels)
+                loss = criterion()(estimates, labels)
             else:
                 loss = criterion()(estimates, labels)
 
@@ -105,8 +105,8 @@ def train(args, model, optimiser,criterion, trainLoader, device, epoch_counter):
             estimates = model(images,metadata)
             
         if args.task == 'classification':
-#            loss = criterion(weight = torch.Tensor([10,1]).cuda())(estimates, labels)
-            loss = criterion()(estimates, labels)
+            loss = criterion(weight = torch.Tensor([1,3]).cuda())(estimates, labels)
+#            loss = criterion()(estimates, labels)
 
         else:
             loss = criterion()(estimates, labels)
@@ -138,6 +138,7 @@ def train_graph(args, model, optimiser,criterion, trainLoader,device, epoch_coun
             data.metadata = data.metadata.to(device)
         
         
+            
         model.train()        
         optimiser.zero_grad()
 
@@ -145,7 +146,8 @@ def train_graph(args, model, optimiser,criterion, trainLoader,device, epoch_coun
 
         labels = data.y#.unsqueeze(1)
 
-
+        if task == 'classification':
+            labels = labels.long()
             
         loss = criterion()(estimates, labels) 
 
@@ -168,8 +170,7 @@ def validate_graph(args, model, criterion, valLoader, current_best,patience, dev
 
     with torch.no_grad():
         running_losses  = []
-        val_outputs = []
-        val_labels = []
+
         for i, data in enumerate(valLoader):
             
             data.x = data.x.to(device)
@@ -185,13 +186,8 @@ def validate_graph(args, model, criterion, valLoader, current_best,patience, dev
             estimates = model(data)
             labels = data.y#.unsqueeze(1)
             
-                
-            
-                # else might need to add confound of scan age
-    
-            val_labels.append(labels.item())
-            
-            val_outputs.append(estimates.item())
+            if task == 'classification':
+                labels = labels.long()
                             
             loss = criterion()(estimates, labels)
 
@@ -343,6 +339,43 @@ def test_regression_graph(args, model, criterion, testLoader,device):
     
     return MAE, test_labels, test_outputs
    
+    
+def test_classification_graph(args, model, criterion, testLoader,device):
+    model.eval()
+    
+    model_name = args.model
+    test_predictions = []
+    test_labels = []
+    model.eval()
+    
+    for i, data in enumerate(testLoader): 
+        
+        
+        data.x = data.x.to(device)
+        data.y = data.y.to(device)
+        data.edge_index = data.edge_index.to(device)
+        
+        if args.task == 'regression_confounded':
+            data.metadata = data.metadata.to(device)
+
+        test_output = model(data)
+        test_label = data.y#.unsqueeze(1)
+            
+ 
+        prediction = torch.argmax(test_output)
+        
+    
+        test_predictions.append(prediction.item())
+        test_labels.append(test_label.item())
+    
+     
+    numpy_preds = np.array(test_predictions)
+    numpy_labels = np.array(test_labels)
+    
+    matching = (numpy_preds == numpy_labels)
+    accuracy = sum(matching)/len(matching)
+    failure = 1-accuracy
+    return failure, test_labels, test_predictions
 
 def load_testing(args):
     if args.task in ['regression', 'regression_confounded']:
@@ -361,7 +394,7 @@ def load_testing_graph(args):
         testing_to_load = 'test_regression_graph'
     
     else:
-        testing_to_load = 'test_'+args.task
+        testing_to_load = 'test_'+args.task+'_graph'
 
     test_function = import_from('utils', testing_to_load)
     return test_function

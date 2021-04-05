@@ -30,7 +30,7 @@ from torch_geometric.utils import degree
 import numpy as np
 
 
-
+import os
 
 hex_6 = torch.LongTensor(np.load('data/hexagons_6.npy'))
 hex_5 = torch.LongTensor(np.load('data/hexagons_5.npy'))
@@ -67,6 +67,7 @@ pseudo_6 = torch.Tensor(np.load('data/relative_coords_6.npy'))
 pseudo_5 = torch.Tensor(np.load('data/relative_coords_5.npy'))
 pseudo_4 = torch.Tensor(np.load('data/relative_coords_4.npy'))
 pseudo_3 = torch.Tensor(np.load('data/relative_coords_3.npy'))
+pseudo_2 = torch.Tensor(np.load('data/relative_coords_2.npy'))
 
 
 
@@ -221,29 +222,145 @@ class monet_regression(nn.Module):
         x_out = self.fc2(x_out)
         
         return x_out.squeeze(1)
+    
+    
 
-class gconvnet_regression_2(nn.Module):
-
-    def __init__(self, num_features,  block=GraphResidualBlock, layers=[2,2,2,2], conv_style=gcnconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
-        self.inchans = num_features[0]
-        super(gconvnet_regression_2, self).__init__()
+    
+    
+    
+class monet_segmentation(nn.Module):
+    def __init__(self, num_features, conv_style=gmmconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
+        super(monet_segmentation, self).__init__()
         self.conv_style = conv_style
         self.device = device
         self.in_channels = 4
         self.conv1 = conv_style(self.in_channels, num_features[0])
-        self.pool1 = hex_pooling(0, self.device)
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
+        self.pool1 = hex_pooling_2(0, self.device)
+        self.pool2 = hex_pooling_2(1, self.device)
+        self.pool3 = hex_pooling_2(2, self.device)
+        self.pool4 = hex_pooling_2(3, self.device)
+
+
+
+        
+
+        self.unpool1 = hex_unpooling(self.device)
+        self.unpool2 = hex_unpooling(self.device)
+        self.unpool3 = hex_unpooling(self.device)
+        self.unpool4 = hex_unpooling(self.device)
+
+        self.conv9 = conv_style(num_features[0] + self.in_channels, 21)
+
+        self.conv8 = conv_style(num_features[1]+num_features[0], num_features[0])
+        self.conv7 = conv_style(num_features[2]+num_features[1], num_features[1])
+        self.conv6 = conv_style(num_features[3] + num_features[2], num_features[2])
+        self.conv5 = conv_style(num_features[3], num_features[3])
+
+
         self.activation_function = activation_function
         
+        self.outac = nn.Softmax(dim=1)
 
-        #self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
-        self.layer1 = self._make_layer(block, num_features[0], layers[0], 1,1, device)
-        self.layer2 = self._make_layer(block,  num_features[1], layers[1],  1,1, device)
-        self.layer3 = self._make_layer(block,  num_features[2], layers[2], 2,2, device)
-        self.layer4 = self._make_layer(block,  num_features[3], layers[3], 3,3, device)
-        self.fc = nn.Linear(num_features[3]*162, 1)
 
-        self.dropout = nn.Dropout(p=0.5,inplace=True)
+
+    def forward(self, data):
+
+        x = data.x
+
+        e = data.edge_index
+
+
+        batch = data.batch
+
+        x = self.conv1(x,e, pseudo_6.to(self.device)) #ico6
+        x0 = self.activation_function(x)
+        x1, i1 = self.pool1(x0)
+
+        #ico5
+        x = self.conv2(x1,edge_index_5.to(self.device), pseudo_5.to(self.device))
+        x = self.activation_function(x)
+        x2, i2 = self.pool2(x)
+        #ico4
+        
+        x = self.conv3(x2,edge_index_4.to(self.device), pseudo_4.to(self.device))
+        x = self.activation_function(x)
+        x3, i3 = self.pool3(x)
+        #ico3
+        
+        x = self.conv4(x3,edge_index_3.to(self.device), pseudo_3.to(self.device))
+        x = self.activation_function(x)
+        x4, i4 = self.pool4(x)
+        
+        #ico2
+
+        x = self.conv5(x4,edge_index_2.to(self.device), pseudo_2.to(self.device))
+        x = self.activation_function(x)
+        #ico2
+        x = self.unpool3(x, i4)
+        #ico3
+        x = torch.cat([x,x3], dim=1)
+
+        
+        x = self.conv6(x,edge_index_3.to(self.device), pseudo_3.to(self.device))
+        
+        
+        x = self.activation_function(x)
+        x = self.unpool2(x, i3)
+        #ico4
+        
+        x = torch.cat([x,x2], dim = 1)
+        
+        x = self.conv7(x,edge_index_4.to(self.device), pseudo_4.to(self.device))
+        x = self.activation_function(x)
+        x = self.unpool3(x, i2)
+        
+        #ico5
+        
+        x = torch.cat([x,x1], dim = 1)
+        
+        x = self.conv8(x,edge_index_5.to(self.device), pseudo_5.to(self.device))
+        x = self.activation_function(x)
+        x = self.unpool4(x, i1)
+        
+        #ico6 
+        
+        x = torch.cat([x,x0], dim = 1)
+        x = self.conv9(x,e, pseudo_6.to(self.device))
+
+        x_out = self.outac(x)
+        
+        return x_out
+        
+    
+    
+
+
+class monet_classification(nn.Module):
+    def __init__(self, num_features, conv_style=gmmconv,activation_function=nn.ReLU(), in_channels = 9, device='cuda'):
+        super(monet_classification, self).__init__()
+        self.conv_style = conv_style
+        self.device = device
+        self.in_channels = 9
+        self.conv1 = conv_style(self.in_channels, num_features[0])
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
+        self.pool1 = hex_pooling(0, self.device)
+        self.pool2 = hex_pooling(1, self.device)
+        self.pool3 = hex_pooling(2, self.device)
+        self.pool4 = hex_pooling(3, self.device)
+        
+        
+        self.activation_function = activation_function
+        
+        self.fc = nn.Linear(num_features[3] * 2, num_features[3])
+        self.fc2 = nn.Linear(num_features[3], 2)
+        self.outac = nn.LogSoftmax(dim=1)
+        
 
         #print "block.expansion=",block.expansion
 #        self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -256,52 +373,50 @@ class gconvnet_regression_2(nn.Module):
 #                m.weight.data.fill_(1)
 #                m.bias.data.zero_()
 
-    def _make_layer(self, block, chans, blocks, ico_level, edge_level, device):
-        downsample = None
-
-        if self.inchans != chans * block.expansion:
-            downsample = do_downsample(self.inchans, chans, self.conv_style, ico_level,device)
-        else:
-            downsample= None
-        layers = []
-        
-        layers.append(block(self.inchans, chans,  self.conv_style,self.activation_function, 
-                            edge_level, downsample, device))        
-        self.inchans = chans * block.expansion
-        
-        for i in range(1, blocks):
-            layers.append(block(self.inchans, chans, self.conv_style, self.activation_function, 
-                                edge_level+1, None, device))
-        
-
-        return nn.Sequential(*layers)
 
     def forward(self, data):
+
         x = data.x
+
         e = data.edge_index
 
-        x = self.conv1(x,e)
 
+        batch=data.batch
+
+        x = self.conv1(x,e, pseudo_6.to(self.device))
         x = self.activation_function(x)
         x = self.pool1(x)
 
-        x = self.layer1(x)
 
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x = self.conv2(x,edge_index_5.to(self.device), pseudo_5.to(self.device))
+        x = self.activation_function(x)
+        x = self.pool2(x)
+        
+        
+        x = self.conv3(x,edge_index_4.to(self.device), pseudo_4.to(self.device))
+        x = self.activation_function(x)
+        x = self.pool3(x)
+        
+        
+        x = self.conv4(x,edge_index_3.to(self.device), pseudo_3.to(self.device))
+        x = self.activation_function(x)
+        x = self.pool4(x)
+        
+        
+        
+        x_max = gnn.global_max_pool(x, batch[:162].to(self.device))
+        x_mean = gnn.global_mean_pool(x, batch[:162].to(self.device))
+        
+        x_c = torch.cat([x_max, x_mean], dim = 1)
+        
 
-#        x = self.avgpool(x)
-#        #print "avepool: ",x.data.shape
 
-        x = x.flatten()
-#        #print "view: ",x.data.shape        
-        x = self.dropout(x)
+        x_out = self.fc(x_c)
 
-        x = self.fc(x)
-
-        return x       
-    
+        x_out = self.activation_function(x_out)
+        x_out = self.fc2(x_out)
+        x_out = self.outac(x_out)
+        return x_out.squeeze(1)
     
 class monet_regression_confounded(nn.Module):
     def __init__(self, num_features, conv_style=gmmconv,activation_function=nn.ReLU(), in_channels = 4, device='cuda'):
@@ -400,7 +515,39 @@ class hex_pooling(nn.Module):
         x = torch.max(x, dim = 1)[0][: L]
         
         return x
+
+
+class hex_pooling_2(nn.Module):
+    def __init__(self, ico_level, device):
+        super(hex_pooling_2, self).__init__()
+        self.hex = hexes[ico_level].to(device)
     
+    def forward(self, x):
+        x = x.reshape(len(self.hex), -1)[self.hex]
+        L = int((len(x)+6)/4)
+        x = torch.max(x, dim = 1)
+        x , indices = x[0][:L], torch.gather(self.hex[:L], 1,x[1][:L])
+        return x, indices
+
+class hex_unpooling(nn.Module):
+    def __init__(self, device):
+        super(hex_unpooling, self).__init__()
+        self.device=device
+        
+    def forward(self, x, indices):        
+
+        other_indices = torch.arange(indices.shape[1])
+        
+        other_indices = other_indices.repeat(len(indices),1).to(self.device)
+        
+        
+        L = int( (len(x) * 4 ) - 6)
+
+        y = torch.zeros(L, x.shape[1]).to(self.device)
+        
+        y[indices, other_indices] = x
+        
+        return y
     
 class do_downsample(nn.Module):
 

@@ -527,6 +527,91 @@ class s2cnn_small_regression(nn.Module):
         # ---------------------------------------------------------------------
 
 
+class s2cnn_small_classification(nn.Module):
+    def __init__(self, in_channels, num_features,  num_classes=2, bandwidth = 85, beta = 16):
+        '''
+        Constructor input:
+            block: instance of residual block class
+            num_blocks: how many layers per block (used in _make_layer)
+            num_strides: list with number of strides for each layer (see Lecture 3)
+            num_features: list with number of features for each layer
+            FC_Channels: number of inputs expected for the fully connected layer (must
+                        equal the total number of activations returned from preceding layer)
+            num_classes: (number of outputs of final layer)
+        '''
+        super(s2cnn_small_classification, self).__init__()
+
+        # ------------------------------ task 2 -------------------------------
+        # complete convolutional and linear layers
+        # step 1. Initialising the network with a 3 x3 conv and batch norm
+        self.conv1 = nn.Conv2d(in_channels, num_features[0], kernel_size=1)
+        grid_s2    =  s2_near_identity_grid(n_alpha=6, max_beta=np.pi/16, n_beta=1)
+        grid_so3_1 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/16, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
+        grid_so3_2 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/ 8, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
+        grid_so3_3 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/ 4, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
+        grid_so3_4 = so3_near_identity_grid(n_alpha=6, max_beta=np.pi/ 2, n_beta=1, max_gamma=2*np.pi, n_gamma=6)
+
+        
+        
+        self.conv2 = S2Convolution(
+                nfeature_in  =  num_features[0],
+                nfeature_out = num_features[1],
+                b_in  = bandwidth,
+                b_out = bandwidth//2,
+                grid=grid_s2)
+
+        self.conv3 = SO3Convolution(
+                nfeature_in  =  num_features[1],
+                nfeature_out = num_features[2],
+                b_in  = bandwidth//2,
+                b_out = bandwidth//2,
+                grid=grid_so3_1)
+        
+        self.conv4 = SO3Convolution(
+                nfeature_in  =  num_features[2],
+                nfeature_out = num_features[3],
+                b_in  = bandwidth//2,
+                b_out = bandwidth//4,
+                grid=grid_so3_2)
+        
+        self.conv5 = SO3Convolution(
+                nfeature_in  =  num_features[3],
+                nfeature_out = num_features[4],
+                b_in  = bandwidth//4,
+                b_out = bandwidth//4,
+                grid=grid_so3_3)
+        
+        self.outac = nn.LogSoftmax(dim=1)
+
+        #self.dropout = nn.Dropout(0.7)
+        # ----------------------------------------------------------------------
+        #channels1, channels2, current_bandwidth, beta, shortcut=True):
+            
+            
+        self.linear = nn.Sequential(
+            # linear 1
+            nn.Linear(num_features[4],num_classes))
+            
+        
+    def forward(self, x):
+        # ------------------------------ task 2 -------------------------------
+        # complete the forward pass
+
+        out = F.relu(self.conv1(x))
+
+        out = F.relu(self.conv2(out))
+        out = F.relu(self.conv3(out))
+        out = F.relu(self.conv4(out))
+        out = F.relu(self.conv5(out))
+
+        out = so3_integrate(out)
+        out = self.linear(out)
+        out = self.outac(out)
+        return out
+        # ---------------------------------------------------------------------
+
+
+
 class s2cnn_small_regression_confounded(nn.Module):
     def __init__(self, in_channels, num_features, block = ResidualBlock, num_classes=1, bandwidth = 85, beta = 16):
         '''

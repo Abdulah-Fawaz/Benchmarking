@@ -358,6 +358,73 @@ class gconvnet_regression_2(nn.Module):
         return x       
     
     
+class chebnet_nopool_classification(nn.Module):
+
+    def __init__(self, num_features, conv_style=chebconv,activation_function=nn.ReLU(), in_channels = 9, device='cuda'):
+        super(chebnet_nopool_classification, self).__init__()
+        self.conv_style = conv_style
+        self.device = device
+        self.in_channels = 9
+        self.conv1 = conv_style(self.in_channels, num_features[0])
+        self.conv2 = conv_style(num_features[0], num_features[1])
+        self.conv3 = conv_style(num_features[1], num_features[2])
+        self.conv4 = conv_style(num_features[2], num_features[3])
+        
+
+        
+        self.activation_function = activation_function
+        
+        self.fc = nn.Linear(num_features[3] * 2, num_features[3])
+        self.fc2 = nn.Linear(num_features[3], 2)
+
+        self.outac = nn.LogSoftmax(dim=1)
+
+        #print "block.expansion=",block.expansion
+#        self.fc = nn.Linear(512 * block.expansion, num_classes)
+
+#        for m in self.modules():
+#            if isinstance(m, nn.Conv2d):
+#                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+#                m.weight.data.normal_(0, math.sqrt(2. / n))
+#            elif isinstance(m, nn.BatchNorm2d):
+#                m.weight.data.fill_(1)
+#                m.bias.data.zero_()
+
+
+    def forward(self, data):
+        x = data.x
+        e = data.edge_index
+        batch = data.batch.to(self.device)
+
+        x = self.conv1(x,e)
+        x = self.activation_function(x)
+
+
+        x = self.conv2(x,e)
+        x = self.activation_function(x)
+       
+        
+        
+        x = self.conv3(x,e)
+        x = self.activation_function(x)
+        
+        
+        x = self.conv4(x,e)
+        x = self.activation_function(x)
+        
+        
+        x_max = gnn.global_max_pool(x, batch)
+        x_mean = gnn.global_mean_pool(x, batch)
+        
+        x_c = torch.cat([x_max, x_mean], dim = 1)
+#        #print "view: ",x.data.shape        
+
+        x_out = self.fc(x_c)
+        x_out = self.activation_function(x_out)
+        x_out = self.fc2(x_out)
+        x_out = self.outac(x_out)
+        return x_out.squeeze(1)
+
     
 class chebnet_nopool_regression_confounded(nn.Module):
 

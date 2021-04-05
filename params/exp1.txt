@@ -1,8 +1,8 @@
---model=presnet
+--model=s2cnn_small
 --project=True
 --task=regression
 --logdir=tmp/
 --in_channels=4
 --dataset_arr=scan_age
---train_rotations=False
+--train_rotations=True
 --patience=100

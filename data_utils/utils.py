@@ -147,7 +147,18 @@ def load_dataloader_classification(ds, dsarr, batch_size = 1, num_workers=1, shu
     
     return loader
 
+def load_dataloader_graph_classification(ds, dsarr, batch_size = 1, num_workers=1, shuffle = False, weighted = False):
+    from torch_geometric.data import DataLoader
 
+    if weighted == False:
+        loader = DataLoader(ds, batch_size, shuffle=shuffle, num_workers = num_workers)
+        
+    elif weighted == True:
+        sampler = make_classification_sampler(dsarr)
+
+        loader = DataLoader(ds, batch_size, sampler = sampler, num_workers = num_workers)
+    
+    return loader
 
 def make_sampler(arr):
     total = len(arr)
