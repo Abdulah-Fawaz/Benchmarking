@@ -313,7 +313,7 @@ class My_dHCP_Data(torch.utils.data.Dataset):
                 
         if self.projected == True:
             image = griddata(xy_points, image.T, grid, 'nearest')
-            image = torch.Tensor(image.reshape(170,170,9)).permute(2,0,1)
+            image = torch.Tensor(image.reshape(170,170,4)).permute(2,0,1)
             
                 
         if hasattr(metadata,'shape'):

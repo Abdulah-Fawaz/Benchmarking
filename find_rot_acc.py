@@ -40,7 +40,7 @@ def main():
     args = params.parse()
     device = get_device(args)
     
-    model_dir = '/home/fa19/Documents/s2cnn_small_results/s2cnn_small/scan_age/fh1772/best_model'
+    model_dir = '/home/fa19/Documents/s2cnn_small_results/s2cnn_small/birth_age_confounded/rx7486/end_model'
    
     resdir = '/'.join(model_dir.split('/')[:-1])
     
@@ -59,8 +59,11 @@ def main():
         
 
     chosen_model = load_model(args)
+    print('this is chosen model', chosen_model)
     features = [int(item) for item in args.features.split(',')]
-    model = chosen_model(in_channels = args.in_channels, num_features = features)
+#    model = chosen_model(in_channels = args.in_channels, num_features = features)
+    print('yes')
+#    model = model.to(device)
     model = torch.load(model_dir).to(device)
     model.eval()
     
@@ -93,6 +96,8 @@ def main():
 
 
         test_images = test_images.to(device)
+
+        
         
         test_label = batch['label'].to(device)
     
@@ -116,7 +121,7 @@ def main():
     np.save(resdir+'/unseen_rots_labels_preds.npy', [test_labels, test_outputs])
     print(MAE, resdir)
     make_fig(test_labels, test_outputs, resdir, 'test_rotated')
-    with open(resdir+'Output_2.txt', "w") as text_file:
+    with open(resdir+'/Output_2.txt', "w") as text_file:
             text_file.write("Unseen Rotated MAE: %f \n" % MAE)
     
     
