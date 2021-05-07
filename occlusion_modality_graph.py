@@ -67,8 +67,11 @@ def main():
     args = params.parse()
     device = get_device(args)
     
-    model_dir = '/home/fa19/Documents/Benchmarking/results/chebnet_nopool/scan_age/oc6266/best_model'
+    model_dir = '/home/fa19/Documents/Benchmarking/results/monet/scan_age/qb9910/best_model'
    
+    part_res = model_dir.split('/')
+    
+    resdir = '/'.join(part_res[:-1])
     
     model_name = args.model
     
@@ -80,7 +83,7 @@ def main():
     print(dsarr)
     task=args.task
     print(task)
-    resdir = '/home/fa19/Desktop/'
+
 
     means = torch.Tensor([1.1267, 0.0345, 1.0176, 0.0556])
     stds = torch.Tensor([0.3522, 0.1906, 0.3844, 4.0476]) 
@@ -90,7 +93,7 @@ def main():
     model = torch.load(model_dir).to(device)
     model.eval()
     
-    T = np.load('/home/fa19/Documents/Benchmarking/data/'+dsarr+'/medium_scan_age.npy', allow_pickle = True)
+    T = np.load('/home/fa19/Documents/Benchmarking/data/'+dsarr+'/small_scan_age.npy', allow_pickle = True)
     
     T = T.reshape([1,2])
 
@@ -170,7 +173,7 @@ def main():
             occlusion_results[i,m] = output - original_target        
             if i%100 == 0:
                 print('Completed ', i)
-    np.save(resdir+'/K=10_occlusion_medium_modality' + str(model_name)+'.npy', occlusion_results)
+    np.save(resdir+'/K=10_occlusion_small_modality' + str(model_name)+'.npy', occlusion_results)
 
     
     

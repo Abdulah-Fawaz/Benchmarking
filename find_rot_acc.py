@@ -40,7 +40,7 @@ def main():
     args = params.parse()
     device = get_device(args)
     
-    model_dir = '/home/fa19/Documents/s2cnn_small_results/s2cnn_small/birth_age_confounded/rx7486/end_model'
+    model_dir = '/home/fa19/Documents/s2cnn_small_results/s2cnn_small/birth_age_confounded/sy6719/end_model'
    
     resdir = '/'.join(model_dir.split('/')[:-1])
     
@@ -62,13 +62,18 @@ def main():
     print('this is chosen model', chosen_model)
     features = [int(item) for item in args.features.split(',')]
     model = chosen_model(in_channels = args.in_channels, num_features = features)
+
     print('yes')
-#    model = model.to(device)
-    model = torch.load(model_dir).to(device)
+    model.load_state_dict(torch.load('/home/fa19/Documents/s2cnn_small_results/s2cnn_small/birth_age_confounded/sy6719/state_dict.pt'))
+    model = model.to(device)
+#    model = torch.load(model_dir).to(device)
+    
     model.eval()
     
     T = np.load('/home/fa19/Documents/Benchmarking/data/'+dsarr+'/test.npy', allow_pickle = True)
-    
+#    print(model.state_dict())
+#    
+#    torch.save(model.state_dict(), '/home/fa19/Documents/s2cnn_small_results/s2cnn_small/birth_age_confounded/sy6719/state_dict.pt')
     
     
     rot_test_ds = My_dHCP_Data_Test_Rot(T, projected = args.project, 
@@ -87,7 +92,8 @@ def main():
 
     test_outputs = []
     test_labels = []
-    model.eval()
+
+    print(model_name)    
 
     for i, batch in enumerate(rot_test_loader):
         test_images = batch['image']
@@ -112,7 +118,7 @@ def main():
 
             test_output = model(test_images, metadata)
         
-    
+        print('did one')
         test_outputs.append(test_output.item())
         test_labels.append(test_label.item())
     

@@ -45,11 +45,13 @@ def get_device(args):
 
 def main():
 
+
     args = params.parse()
     device = get_device(args)
     
-    model_dir = '/home/fa19/Documents/Benchmarking/results/chebnet_nopool/scan_age/kd3170/best_model'
+    model_dir = '/home/fa19/Documents/Benchmarking/results/gconvnet_nopool/birth_age_confounded/ml4112/end_model'
    
+    resdir = '/'.join(model_dir.split('/')[:-1])
     
     model_name = args.model
     
@@ -61,21 +63,26 @@ def main():
     print(dsarr)
     task=args.task
     print(task)
-    resdir = '/home/fa19/Desktop/'
+    print(device)
 
-    
+        
+
     chosen_model = load_model(args)
-    
+    print('this is chosen model', chosen_model)
+#    model = chosen_model(in_channels = args.in_channels, num_features = features)
+    print('yes')
+#    model = model.to(device)
     model = torch.load(model_dir).to(device)
     model.eval()
     
     T = np.load('/home/fa19/Documents/Benchmarking/data/'+dsarr+'/test.npy', allow_pickle = True)
     
+        
     edges = torch.LongTensor(np.load('data/edge_ico_6.npy').T)
 
     
     rot_test_ds = My_dHCP_Data_Graph_Test_Rot(T,edges=edges, projected = False, 
-                  rotations= False, 
+                  rotations= True, 
                   parity_choice='both', 
                   number_of_warps = 0,
                   normalisation = 'std',
@@ -92,20 +99,31 @@ def main():
     test_labels = []
     model.eval()
 
-    for i, batch in enumerate(rot_test_loader):
-            test_label = batch.y
-            test_output = model(batch)
+    for i, data in enumerate(rot_test_loader):
         
+         
+        data.x = data.x.to(device)
+        data.y = data.y.to(device)
+        data.edge_index = data.edge_index.to(device)
+        
+        if args.task == 'regression_confounded':
+            data.metadata = data.metadata.to(device)
+
+        test_output = model(data)
+        test_label = data.y#.unsqueeze(1)
+            
+ 
+        test_outputs.append(test_output.item())
+        test_labels.append(test_label.item())
     
-            test_outputs.append(test_output.item())
-            test_labels.append(test_label.item())
+        
     
      
     MAE =  np.mean(np.abs(np.array(test_outputs)-np.array(test_labels))) 
     np.save(resdir+'/unseen_rots_labels_preds.npy', [test_labels, test_outputs])
     print(MAE, resdir)
     make_fig(test_labels, test_outputs, resdir, 'test_rotated')
-    with open(resdir+'Output_2.txt', "w") as text_file:
+    with open(resdir+'/Output_2.txt', "w") as text_file:
             text_file.write("Unseen Rotated MAE: %f \n" % MAE)
     
     

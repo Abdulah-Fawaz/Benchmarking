@@ -1,4 +1,4 @@
---model=gconvnet
+--model=monet
 --project=False
 --task=regression
 --logdir=tmp/
@@ -7,5 +7,3 @@
 --patience=100
 --train_rotations=False
 --train_warps=100
---unwarp_dir=/home/fa19/Documents/dHCP_Data_merged/derivatives_native_ico6
---warp_dir=/data/warped_native

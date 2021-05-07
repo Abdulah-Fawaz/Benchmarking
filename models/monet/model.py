@@ -439,7 +439,7 @@ class monet_regression_confounded(nn.Module):
         
         self.fc = nn.Linear((num_features[3] * 2 )+ 4, num_features[3])
         self.fc2 = nn.Linear(num_features[3], 1)
-        self.dropout = nn.Dropout(0.5)
+#        self.dropout = nn.Dropout(0.5)
         
 
         #print "block.expansion=",block.expansion
@@ -496,7 +496,7 @@ class monet_regression_confounded(nn.Module):
         x_c = torch.cat([x_c, m], dim=1)
 
         x_out = self.fc(x_c)
-        x_out = self.dropout(x_out)
+#        x_out = self.dropout(x_out)
         x_out = self.activation_function(x_out)
         x_out = self.fc2(x_out)
         

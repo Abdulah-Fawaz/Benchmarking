@@ -59,12 +59,17 @@ def main():
     args = params.parse()
     device = get_device(args)
     
-    model_dir = '/home/fa19/Documents/Benchmarking/results/chebnet_nopool/birth_age_confounded/np9030/best_model'
+    
+    model_dir = '/home/fa19/Documents/Benchmarking/results/chebnet_nopool/scan_age/oq2934/best_model'
    
+    part_res = model_dir.split('/')
+    
+    resdir = '/'.join(part_res[:-1])
+    
     
     model_name = args.model
     
-    dsarr = 'birth_age_confounded'
+    dsarr = 'scan_age'
     
     location_of_model = 'models/' + model_name
     
@@ -72,7 +77,6 @@ def main():
     print(dsarr)
     task=args.task
     print(task)
-    resdir = '/home/fa19/Desktop/'
 
     means = torch.Tensor([1.1267, 0.0345, 1.0176, 0.0556])
     stds = torch.Tensor([0.3522, 0.1906, 0.3844, 4.0476]) 
@@ -82,7 +86,7 @@ def main():
     model = torch.load(model_dir).to(device)
     model.eval()
     
-    T = np.load('/home/fa19/Documents/Benchmarking/data/'+dsarr+'/large_birth_age_confounded.npy', allow_pickle = True)
+    T = np.load('/home/fa19/Documents/Benchmarking/data/'+dsarr+'/small_scan_age.npy', allow_pickle = True)
     
     T = T.reshape([1,len(T)])
 
@@ -95,7 +99,7 @@ def main():
                   number_of_warps = 0,
                   normalisation = 'std',
                   warped_files_directory='/home/fa19/Documents/dHCP_Data_merged/Warped',
-                  unwarped_files_directory='/home/fa19/Documents/dHCP_Data_merged/merged')
+                  unwarped_files_directory='/hfome/fa19/Documents/dHCP_Data_merged/merged')
         
         
     edges_ico_6 = np.load('data/ico_6_edges.npy', allow_pickle = True)
@@ -158,7 +162,7 @@ def main():
         occlusion_results[i] = output - original_target        
         if i%100 == 0:
             print('Completed ', i)
-    np.save(resdir+'/K=10_occlusion_large_brth_age' + str(model_name)+'.npy', occlusion_results)
+    np.save(resdir+'/K='+size_of_hole+'_occlusion_small_scan_age' + str(model_name)+'.npy', occlusion_results)
 
     
     

@@ -1,0 +1,36 @@
+{
+    "dataset": [
+        {
+            "criterion": "L2",
+            "dataset_arr": "birth_age_confounded",
+            "device": 0,
+            "features": "8,16,32,64,128",
+            "from_scratch": false,
+            "in_channels": 4,
+            "learning_rate": 1e-05,
+            "log_frequency": 1,
+            "logdir": "tmp/",
+            "model": "s2cnn_small",
+            "n_epochs": 20000,
+            "normalisation": "std",
+            "optimiser": "adam",
+            "overwrite": false,
+            "patience": 100.0,
+            "project": true,
+            "resdir": "results",
+            "run_id": "jt8481",
+            "task": "regression_confounded",
+            "test_parity": "both",
+            "test_rotations": false,
+            "test_warps": 0,
+            "train_bsize": 8,
+            "train_parity": "both",
+            "train_rotations": true,
+            "train_warps": 100,
+            "unwarp_dir": "/home/fa19/Documents/dHCP_Data_merged/merged",
+            "warp_dir": "/home/fa19/Documents/dHCP_Data_merged/Warped",
+            "weight_decay": 0.01,
+            "weighted_sampling": true
+        }
+    ]
+}
