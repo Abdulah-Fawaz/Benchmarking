@@ -10,16 +10,16 @@ import numpy as np
 
 import os
 import copy
-root_dir = '/data/warped_native/'
+root_dir = '/data/abdulah'
 
-#for file in os.listdir(root_dir):
-#    if 'sub-' in file:
-#    
-#        new_file = file.replace('sub-', '')
-#        new_file = new_file.replace('ses-','')
-#         
-#        os.rename(root_dir + file, root_dir+new_file)
-#        
+for file in os.listdir(root_dir):
+    if 'sub-' in file:
+    
+        new_file = file.replace('sub-', '')
+        new_file = new_file.replace('ses-','')
+         
+        os.rename(root_dir + file, root_dir+new_file)
+        
         
 for file in os.listdir(root_dir):
     if '_W' in file:
