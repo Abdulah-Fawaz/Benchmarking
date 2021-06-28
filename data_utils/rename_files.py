@@ -10,7 +10,7 @@ import numpy as np
 
 import os
 import copy
-root_dir = '/data/abdulah'
+root_dir = '/data/abdulah/'
 
 for file in os.listdir(root_dir):
     if 'sub-' in file:

@@ -70,7 +70,7 @@ def main():
     model_name = args.model
     
     dsarr = 'scan_age'
-    
+    print(model_name)
     location_of_model = 'models/' + model_name
     
     print(model_name)
