@@ -66,15 +66,16 @@ def get_device(args):
 
 
 
-model_dirs = ['/home/fa19/Documents/results2/presnet/scan_age/hr3318/end_model']
+model_dirs = ['/home/fa19/Documents/results2/presnet/scan_age/hr3318/end_model',
+              '/home/fa19/Documents/Benchmarking/results/s2cnn_small/scan_age/ot2313/end_model']
 
 
-model_list = ['presnet']
+model_list = ['presnet', 's2cnn']
 def main():
 
     args = params.parse()
     device = get_device(args)
-    for idx in range(0,5):
+    for idx in range(1,5):
         model_dir = model_dirs[idx]
         
         args.model = model_list[idx]
